@@ -3,153 +3,218 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام إدارة العمليات والمهام | Marketing ERP</title>
-  <link rel="stylesheet" href="style.css">
+  <title>نظام إدارة العمليات والمهام - شركة تسويق إلكتروني (ClickUp Inspired)</title>
+  
+  <!-- Google Fonts: Cairo & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-  <!-- Auth Screen -->
-  <div id="auth-screen" class="auth-container">
-    <div class="auth-card">
-      <div class="brand">
-        <i class="fa-solid fa-rocket"></i>
-        <h2>Marketing Task Pro</h2>
+  <div id="app-root">
+
+    <!-- Sidebar Navigation (ClickUp Hierarchy) -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <div class="brand-logo"><i class="fas fa-rocket"></i></div>
+        <div class="brand-title">AGENCY CLICKUP</div>
       </div>
-      <form id="login-form">
-        <div class="form-group">
-          <label>البريد الإلكتروني</label>
-          <input type="email" id="login-email" required placeholder="name@agency.com">
+
+      <!-- Logged User Profile Badge & Role Switcher Simulator -->
+      <div class="user-profile-badge">
+        <img id="user-avatar-img" src="https://i.pravatar.cc/150?img=47" alt="User Avatar" class="user-avatar">
+        <div class="user-info">
+          <div id="user-display-name" class="user-name">د. سارة محمود</div>
+          <div id="user-role-name" class="user-role-tag">المدير العام</div>
         </div>
-        <div class="form-group">
-          <label>كلمة السر</label>
-          <div class="password-wrapper">
-            <input type="password" id="login-password" required placeholder="••••••••">
-            <i class="fa-solid fa-eye toggle-password" id="toggle-pwd-btn"></i>
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="nav-section">
+        <div class="nav-group-title">القوائم الرئيسية</div>
+        <div class="nav-item active" data-view="dashboard">
+          <i class="fas fa-chart-pie"></i>
+          <span>الداشبورد والتحليلات</span>
+        </div>
+        <div class="nav-item" data-view="board">
+          <i class="fas fa-columns"></i>
+          <span>لوحة المهام (Kanban)</span>
+        </div>
+        <div class="nav-item" data-view="list">
+          <i class="fas fa-list-ul"></i>
+          <span>قائمة المهام (Table)</span>
+        </div>
+        <div class="nav-item" data-view="review">
+          <i class="fas fa-glasses" style="color: var(--accent-yellow);"></i>
+          <span>مراجعة المدير (Review Queue)</span>
+        </div>
+        <div class="nav-item" data-view="calendar">
+          <i class="far fa-calendar-alt"></i>
+          <span>التقويم (Calendar)</span>
+        </div>
+        <div class="nav-item" data-view="gantt">
+          <i class="fas fa-stream"></i>
+          <span>مخطط جانت (Gantt)</span>
+        </div>
+
+        <!-- Hierarchy Folder Tree -->
+        <div class="hierarchy-tree">
+          <div class="nav-group-title" style="margin-top: 1.5rem;">هيكلية الأقسام (Spaces & Folders)</div>
+          <div class="tree-item"><i class="fas fa-folder" style="color: var(--accent-blue);"></i> حملات Paid Ads</div>
+          <div class="tree-item"><i class="fas fa-folder" style="color: var(--accent-pink);"></i> استوديو التصاميم</div>
+          <div class="tree-item"><i class="fas fa-folder" style="color: var(--accent-green);"></i> محركات البحث SEO</div>
+          <div class="tree-item"><i class="fas fa-folder" style="color: var(--accent-purple);"></i> الأوتوميشن والتقنية</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Shell -->
+    <main class="main-wrapper">
+
+      <!-- Topbar Controls -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="view-tabs">
+            <button class="view-tab active" data-view="dashboard"><i class="fas fa-chart-line"></i> التحليلات</button>
+            <button class="view-tab" data-view="board"><i class="fas fa-th-large"></i> البورد</button>
+            <button class="view-tab" data-view="list"><i class="fas fa-table"></i> القائمة</button>
+            <button class="view-tab" data-view="review"><i class="fas fa-check-double"></i> المراجعة</button>
           </div>
         </div>
-        <div class="form-row">
-          <label class="checkbox-label">
-            <input type="checkbox" id="remember-me"> حفظ البيانات لوكال
-          </label>
+
+        <div class="topbar-right">
+          <!-- Role Simulator Dropdown (to easily test Owner, GM, Media Buyer, Designer views) -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-user-shield"></i> محاكاة الوظيفة:</label>
+            <select id="role-simulator-select" class="role-select-box"></select>
+          </div>
+
+          <button class="btn btn-primary" onclick="window.AppController.openTaskModal()"><i class="fas fa-plus"></i> مهمة جديدة</button>
         </div>
-        <button type="submit" class="btn-primary">تسجيل الدخول <i class="fa-solid fa-right-to-bracket"></i></button>
+      </header>
+
+      <!-- Advanced Filter Bar (ClickUp Inspired Filters) -->
+      <section class="filter-bar">
+        <input type="text" id="filter-search" class="search-input" placeholder="🔍 بحث في المهام والعملاء...">
+        
+        <select id="filter-status" class="filter-select">
+          <option value="ALL">جميع الحالات</option>
+          <option value="Backlog">قائمة الانتظار</option>
+          <option value="In Progress">قيد التنفيذ</option>
+          <option value="Review">مراجعة المدير</option>
+          <option value="Approved">معتمدة</option>
+          <option value="Completed">مكتملة</option>
+        </select>
+
+        <select id="filter-priority" class="filter-select">
+          <option value="ALL">جميع الأولويات</option>
+          <option value="Urgent">عاجل جداً (Urgent)</option>
+          <option value="High">مرتفع (High)</option>
+          <option value="Normal">عادي (Normal)</option>
+          <option value="Low">منخفض (Low)</option>
+        </select>
+
+        <select id="filter-platform" class="filter-select">
+          <option value="ALL">جميع المنصات</option>
+          <option value="Meta">Meta (Facebook/Insta)</option>
+          <option value="TikTok">TikTok Ads</option>
+          <option value="Google">Google Ads / SEO</option>
+          <option value="Snapchat">Snapchat</option>
+        </select>
+      </section>
+
+      <!-- Dynamic View Container -->
+      <div id="main-content-area" class="content-area"></div>
+
+    </main>
+  </div>
+
+  <!-- Task Creation / Editing Modal -->
+  <div id="task-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-tasks"></i> إضافة مهمة جديدة للسيستم</div>
+        <button class="btn btn-secondary" onclick="window.AppController.closeTaskModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form onsubmit="window.AppController.saveTaskFromForm(event)">
+        <div class="form-group">
+          <label class="form-label">عنوان المهمة</label>
+          <input type="text" id="task-title-input" class="form-control" placeholder="مثال: إطلاق حملة Meta Conversion لشهر أغسطس" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">اسم العميل</label>
+            <input type="text" id="task-client-input" class="form-control" placeholder="مثال: متجر النخبة">
+          </div>
+          <div class="form-group">
+            <label class="form-label">المنصة التسويقية</label>
+            <select id="task-platform-input" class="form-control">
+              <option value="Meta">Meta (Facebook & Instagram)</option>
+              <option value="TikTok">TikTok Ads</option>
+              <option value="Google">Google Search & Ads</option>
+              <option value="Snapchat">Snapchat Ads</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">الميزانية الإعلانية ($)</label>
+            <input type="number" id="task-budget-input" class="form-control" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">الأولوية</label>
+            <select id="task-priority-input" class="form-control">
+              <option value="Urgent">عاجل (Urgent)</option>
+              <option value="High">مرتفع (High)</option>
+              <option value="Normal" selected>عادي (Normal)</option>
+              <option value="Low">منخفض (Low)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">تاريخ الموعد النهائي (Deadline)</label>
+            <input type="datetime-local" id="task-duedate-input" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الوقت التقديري بالرسوم (ساعات)</label>
+            <input type="number" step="0.5" id="task-hours-input" class="form-control" value="4">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">المسؤول عن التنفيذ (Assignee)</label>
+          <select id="task-assignee-input" class="form-control">
+            <option value="USR-007">حمزة يوسف (ميديا باير)</option>
+            <option value="USR-008">نور الهدى (ديزاينر)</option>
+            <option value="USR-006">مريم إبراهيم (كونتنت كريتور)</option>
+            <option value="USR-010">فاطمة الزهراء (SEO Specialist)</option>
+            <option value="USR-004">مهندس خالد مصطفى (Tech Lead)</option>
+            <option value="USR-009">كريم السعدي (سوشيال ميديا)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="window.AppController.closeTaskModal()">إلغاء</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ المهمة والمزامنة</button>
+        </div>
       </form>
     </div>
   </div>
 
-  <!-- Main Application Layout -->
-  <div id="app-screen" class="app-layout hidden">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <i class="fa-solid fa-bolt"></i> <span>ClickUp Agency</span>
-      </div>
-      <nav class="sidebar-menu">
-        <a href="#" class="active" data-view="dashboard"><i class="fa-solid fa-chart-pie"></i> الداش بورد</a>
-        <a href="#" data-view="board"><i class="fa-solid fa-square-kanban"></i> لوحة المهام</a>
-        <a href="#" data-view="reviews" id="menu-reviews" class="hidden"><i class="fa-solid fa-clipboard-check"></i> المراجعات المعلقة</a>
-      </nav>
-      <div class="user-profile-footer">
-        <div class="avatar" id="user-avatar">M</div>
-        <div class="user-info">
-          <span id="user-name" class="name">محمد العتيبي</span>
-          <span id="user-role" class="role">Owner</span>
-        </div>
-        <button id="logout-btn" class="btn-icon" title="خروج"><i class="fa-solid fa-right-from-bracket"></i></button>
-      </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main class="main-content">
-      <!-- Header Bar -->
-      <header class="top-bar">
-        <div class="search-bar">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="search-input" placeholder="بحث سريع في المهام...">
-        </div>
-        <button id="btn-add-task" class="btn-primary"><i class="fa-solid fa-plus"></i> إضافـة مهمـة جديدة</button>
-      </header>
-
-      <!-- Role Specific Dashboards -->
-      <section id="dashboard-view" class="view-section">
-        <!-- Owner / Management View -->
-        <div id="executive-dashboard" class="dashboard-grid hidden">
-          <div class="stat-card border-red">
-            <h4>المهام المتأخرة</h4>
-            <span class="stat-number" id="exec-overdue-count">0</span>
-          </div>
-          <div class="stat-card border-blue">
-            <h4>قيد الإنجاز الان</h4>
-            <span class="stat-number" id="exec-inprogress-count">0</span>
-          </div>
-          <div class="stat-card border-green">
-            <h4>نسبة الإلتزام العام</h4>
-            <span class="stat-number" id="exec-efficiency">94%</span>
-          </div>
-        </div>
-
-        <!-- Employee Personal View -->
-        <div id="employee-dashboard" class="dashboard-grid hidden">
-          <div class="stat-card">
-            <h4>مستوى الأداء الحالي</h4>
-            <div id="gamification-badge" class="badge-hero">🚀 بطل (Hero)</div>
-          </div>
-          <div class="stat-card">
-            <h4>مهامي المتأخرة</h4>
-            <span class="stat-number color-red" id="emp-overdue-count">0</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- ClickUp Filter Bar & Board -->
-      <section id="board-view" class="view-section hidden">
-        <div class="filter-bar">
-          <div class="filter-item">
-            <label>تاريخ الإنجاز:</label>
-            <input type="date" id="filter-date">
-          </div>
-          <div class="filter-item">
-            <label>المنفذ:</label>
-            <select id="filter-assignee">
-              <option value="ALL">جميع الموظفين</option>
-            </select>
-          </div>
-          <div class="filter-item">
-            <label>الحالة:</label>
-            <select id="filter-status">
-              <option value="ALL">الكل</option>
-              <option value="To Do">قيد الانتظار</option>
-              <option value="In Progress">جاري العمل</option>
-              <option value="Review">تحت المراجعة</option>
-              <option value="Done">مكتملة</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Kanban Columns -->
-        <div class="kanban-board">
-          <div class="kanban-column" data-status="To Do">
-            <div class="column-header"><span class="dot grey"></span> قيد الانتظار</div>
-            <div class="task-list" id="col-todo"></div>
-          </div>
-          <div class="kanban-column" data-status="In Progress">
-            <div class="column-header"><span class="dot blue"></span> جاري العمل</div>
-            <div class="task-list" id="col-inprogress"></div>
-          </div>
-          <div class="kanban-column" data-status="Review">
-            <div class="column-header"><span class="dot orange"></span> تحت المراجعة</div>
-            <div class="task-list" id="col-review"></div>
-          </div>
-          <div class="kanban-column" data-status="Done">
-            <div class="column-header"><span class="dot green"></span> مكتملة</div>
-            <div class="task-list" id="col-done"></div>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <script src="app.js"></script>
+  <!-- App Core JavaScript Files -->
+  <script src="js/kpi_engine.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
