@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام إدارة العمليات والمهام | Marketing ERP</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="auth-container">
+    <div class="auth-card">
+      <div class="brand">
+        <i class="fa-solid fa-rocket"></i>
+        <h2>Marketing Task Pro</h2>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="login-email" required placeholder="name@agency.com">
+        </div>
+        <div class="form-group">
+          <label>كلمة السر</label>
+          <div class="password-wrapper">
+            <input type="password" id="login-password" required placeholder="••••••••">
+            <i class="fa-solid fa-eye toggle-password" id="toggle-pwd-btn"></i>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="remember-me"> حفظ البيانات لوكال
+          </label>
+        </div>
+        <button type="submit" class="btn-primary">تسجيل الدخول <i class="fa-solid fa-right-to-bracket"></i></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Application Layout -->
+  <div id="app-screen" class="app-layout hidden">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-bolt"></i> <span>ClickUp Agency</span>
+      </div>
+      <nav class="sidebar-menu">
+        <a href="#" class="active" data-view="dashboard"><i class="fa-solid fa-chart-pie"></i> الداش بورد</a>
+        <a href="#" data-view="board"><i class="fa-solid fa-square-kanban"></i> لوحة المهام</a>
+        <a href="#" data-view="reviews" id="menu-reviews" class="hidden"><i class="fa-solid fa-clipboard-check"></i> المراجعات المعلقة</a>
+      </nav>
+      <div class="user-profile-footer">
+        <div class="avatar" id="user-avatar">M</div>
+        <div class="user-info">
+          <span id="user-name" class="name">محمد العتيبي</span>
+          <span id="user-role" class="role">Owner</span>
+        </div>
+        <button id="logout-btn" class="btn-icon" title="خروج"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Header Bar -->
+      <header class="top-bar">
+        <div class="search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="search-input" placeholder="بحث سريع في المهام...">
+        </div>
+        <button id="btn-add-task" class="btn-primary"><i class="fa-solid fa-plus"></i> إضافـة مهمـة جديدة</button>
+      </header>
+
+      <!-- Role Specific Dashboards -->
+      <section id="dashboard-view" class="view-section">
+        <!-- Owner / Management View -->
+        <div id="executive-dashboard" class="dashboard-grid hidden">
+          <div class="stat-card border-red">
+            <h4>المهام المتأخرة</h4>
+            <span class="stat-number" id="exec-overdue-count">0</span>
+          </div>
+          <div class="stat-card border-blue">
+            <h4>قيد الإنجاز الان</h4>
+            <span class="stat-number" id="exec-inprogress-count">0</span>
+          </div>
+          <div class="stat-card border-green">
+            <h4>نسبة الإلتزام العام</h4>
+            <span class="stat-number" id="exec-efficiency">94%</span>
+          </div>
+        </div>
+
+        <!-- Employee Personal View -->
+        <div id="employee-dashboard" class="dashboard-grid hidden">
+          <div class="stat-card">
+            <h4>مستوى الأداء الحالي</h4>
+            <div id="gamification-badge" class="badge-hero">🚀 بطل (Hero)</div>
+          </div>
+          <div class="stat-card">
+            <h4>مهامي المتأخرة</h4>
+            <span class="stat-number color-red" id="emp-overdue-count">0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ClickUp Filter Bar & Board -->
+      <section id="board-view" class="view-section hidden">
+        <div class="filter-bar">
+          <div class="filter-item">
+            <label>تاريخ الإنجاز:</label>
+            <input type="date" id="filter-date">
+          </div>
+          <div class="filter-item">
+            <label>المنفذ:</label>
+            <select id="filter-assignee">
+              <option value="ALL">جميع الموظفين</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>الحالة:</label>
+            <select id="filter-status">
+              <option value="ALL">الكل</option>
+              <option value="To Do">قيد الانتظار</option>
+              <option value="In Progress">جاري العمل</option>
+              <option value="Review">تحت المراجعة</option>
+              <option value="Done">مكتملة</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Kanban Columns -->
+        <div class="kanban-board">
+          <div class="kanban-column" data-status="To Do">
+            <div class="column-header"><span class="dot grey"></span> قيد الانتظار</div>
+            <div class="task-list" id="col-todo"></div>
+          </div>
+          <div class="kanban-column" data-status="In Progress">
+            <div class="column-header"><span class="dot blue"></span> جاري العمل</div>
+            <div class="task-list" id="col-inprogress"></div>
+          </div>
+          <div class="kanban-column" data-status="Review">
+            <div class="column-header"><span class="dot orange"></span> تحت المراجعة</div>
+            <div class="task-list" id="col-review"></div>
+          </div>
+          <div class="kanban-column" data-status="Done">
+            <div class="column-header"><span class="dot green"></span> مكتملة</div>
+            <div class="task-list" id="col-done"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
