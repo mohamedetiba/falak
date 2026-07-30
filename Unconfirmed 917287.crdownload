@@ -1,5 +1,5 @@
 // Configuration
-const GAS_API_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL"; 
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxD0PkFab9JbG4n0zWiGdlUlJOdE9_W4CXcGQNx84meGtrIiH5144bzioyB0si1494Ouw/exec"; 
 
 // App State
 let currentUser = null;
