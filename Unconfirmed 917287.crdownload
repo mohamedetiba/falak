@@ -1,0 +1,108 @@
+// Configuration
+const GAS_API_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL"; 
+
+// App State
+let currentUser = null;
+let allTasks = [];
+
+// DOM Elements
+document.addEventListener("DOMContentLoaded", () => {
+  initAuth();
+});
+
+// Authentication Logic
+function initAuth() {
+  const savedUser = localStorage.getItem("marketing_user");
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+    launchApp();
+  }
+}
+
+document.getElementById("toggle-pwd-btn").addEventListener("click", function() {
+  const pwdInput = document.getElementById("login-password");
+  const type = pwdInput.getAttribute("type") === "password" ? "text" : "password";
+  pwdInput.setAttribute("type", type);
+  this.classList.toggle("fa-eye-slash");
+});
+
+document.getElementById("login-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const email = document.getElementById("login-email").value;
+  const remember = document.getElementById("remember-me").checked;
+
+  // Mocking Login Authentication (To be connected to GAS)
+  currentUser = { email: email, name: email.split("@")[0], role: "Owner" };
+  
+  if (remember) {
+    localStorage.setItem("marketing_user", JSON.stringify(currentUser));
+  }
+  launchApp();
+});
+
+function launchApp() {
+  document.getElementById("auth-screen").classList.add("hidden");
+  document.getElementById("app-screen").classList.remove("hidden");
+  document.getElementById("user-name").textContent = currentUser.name;
+  document.getElementById("user-role").textContent = currentUser.role;
+
+  // Render Role Dashboard
+  if (currentUser.role === "Owner" || currentUser.role === "General Manager") {
+    document.getElementById("executive-dashboard").classList.remove("hidden");
+  } else {
+    document.getElementById("employee-dashboard").classList.remove("hidden");
+  }
+
+  fetchTasks();
+}
+
+// Smart Deadline Logic Engine
+function calculateDeadlineStatus(deadlineStr) {
+  const now = new Date();
+  const deadline = new Date(deadlineStr);
+  const diffHours = (deadline - now) / (1000 * 60 * 60);
+
+  if (diffHours < 0 || diffHours <= 5) {
+    return "deadline-danger-5h"; // تنبيه احمر
+  } else if (diffHours <= 24) {
+    return "deadline-warning-24h"; // تنبيه اصفر
+  }
+  return "deadline-normal";
+}
+
+// Render Kanban Board
+function renderTasks(tasks) {
+  const cols = {
+    "To Do": document.getElementById("col-todo"),
+    "In Progress": document.getElementById("col-inprogress"),
+    "Review": document.getElementById("col-review"),
+    "Done": document.getElementById("col-done")
+  };
+
+  Object.values(cols).forEach(c => c.innerHTML = "");
+
+  tasks.forEach(task => {
+    const alertClass = calculateDeadlineStatus(task.deadline);
+    const card = document.createElement("div");
+    card.className = `task-card ${alertClass}`;
+    card.innerHTML = `
+      <h5>${task.title}</h5>
+      <p style="font-size:11px; color:#6b7280;">المنفذ: ${task.assignee}</p>
+      <div style="margin-top:8px; font-size:10px; font-weight:bold;">
+        <i class="fa-regular fa-clock"></i> ${new Date(task.deadline).toLocaleString("ar-EG")}
+      </div>`;
+    
+    if (cols[task.status]) cols[task.status].appendChild(card);
+  });
+}
+
+function fetchTasks() {
+  // Demo tasks with deadlines for visual check
+  const now = new Date();
+  allTasks = [
+    { id: 1, title: "تصميم بوستات الحملة", assignee: "Designer", status: "In Progress", deadline: new Date(now.getTime() + 3*60*60*1000) }, // Danger <5h
+    { id: 2, title: "إعداد إعلانات التيك توك", assignee: "Media Buyer", status: "To Do", deadline: new Date(now.getTime() + 18*60*60*1000) }, // Warning <24h
+    { id: 3, title: "كتابة سكريبت الفيديوهات", assignee: "Content", status: "Done", deadline: new Date(now.getTime() + 72*60*60*1000) }
+  ];
+  renderTasks(allTasks);
+}
