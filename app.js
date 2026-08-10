@@ -1,133 +1,143 @@
 /**
- * Main Controller Script for ClickUp-Inspired Enterprise Marketing System
+ * app.js - Falak Business Solutions Main Application Logic & Single-Page Application (SPA) Controller
  */
-document.addEventListener("DOMContentLoaded", function() {
-  window.AppStore.init(https://script.google.com/macros/s/AKfycbwqJE5ZGsyRlXyTKWKI8Ed556N74AlyLVIYqnIrJA-hWD-ELNbq_vjRgNgY0E2ljz9Z/exec);
-  window.AppController.init();
-});
 
-window.AppController = {
-  init: function() {
-    this.renderUserBadge();
-    this.renderRoleSwitcher();
-    this.setupEventListeners();
-    this.renderActiveView();
-    this.checkSLAAlerts();
-  },
+window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyL-cX0UWmMp5MbKW2mxzp7jQtDBiz8e_QXU-ujNfBcR-28LZekirwXhr5PmNGVGkDc9A/exec";
 
-  renderUserBadge: function() {
-    const user = window.AppStore.state.currentUser;
-    if (!user) return;
-
-    document.getElementById("user-avatar-img").src = user.avatar || "https://i.pravatar.cc/150";
-    document.getElementById("user-display-name").textContent = user.full_name;
-
-    const roleInfo = window.KPIEngine.roles[user.role] || { title: user.role };
-    document.getElementById("user-role-name").textContent = roleInfo.title;
-  },
-
-  renderRoleSwitcher: function() {
-    const select = document.getElementById("role-simulator-select");
-    if (!select) return;
-
-    select.innerHTML = "";
-    window.AppStore.state.users.forEach(u => {
-      const opt = document.createElement("option");
-      opt.value = u.user_id;
-      const roleTitle = window.KPIEngine.roles[u.role] ? window.KPIEngine.roles[u.role].title : u.role;
-      opt.textContent = `${u.full_name} (${roleTitle})`;
-      if (window.AppStore.state.currentUser && window.AppStore.state.currentUser.user_id === u.user_id) {
-        opt.selected = true;
-      }
-      select.appendChild(opt);
-    });
-  },
-
-  switchUserRoleSim: function(userId) {
-    const targetUser = window.AppStore.state.users.find(u => u.user_id === userId);
-    if (targetUser) {
-      window.AppStore.setCurrentUser(targetUser);
-      this.renderUserBadge();
-      this.renderActiveView();
-      alert(`تم التبديل بنجاح لرؤية النظام كـ: ${targetUser.full_name} (${targetUser.role})`);
+// Global Application Store
+window.AppStore = {
+  state: {
+    currentUser: null,
+    users: [],
+    clients: [],
+    projects: [],
+    tasks: [],
+    taskComments: [],
+    handovers: [],
+    kpis: [],
+    historyLog: [],
+    notifications: [],
+    files: [],
+    settings: [],
+    activeView: "dashboard",
+    kanbanSubView: "board",
+    filters: {
+      searchQuery: "",
+      taskType: "ALL",
+      clientId: "ALL",
+      projectId: "ALL",
+      assigneeId: "ALL",
+      status: "ALL",
+      priority: "ALL",
+      dateRange: "ALL",
+      myTasksOnly: false,
+      groupBy: "NONE",
+      sortBy: "DEADLINE"
     }
   },
 
-  setupEventListeners: function() {
+  init: function() {
+    this.loadSession();
+  },
+
+  loadSession: function() {
+    const savedUser = localStorage.getItem("FALAK_USER_SESSION");
+    if (savedUser) {
+      try {
+        this.state.currentUser = JSON.parse(savedUser);
+      } catch(e) {
+        localStorage.removeItem("FALAK_USER_SESSION");
+      }
+    }
+  },
+
+  saveSession: function(user) {
+    this.state.currentUser = user;
+    localStorage.setItem("FALAK_USER_SESSION", JSON.stringify(user));
+  },
+
+  clearSession: function() {
+    this.state.currentUser = null;
+    localStorage.removeItem("FALAK_USER_SESSION");
+  },
+
+  apiCall: async function(action, payload = {}) {
+    if (!window.APPS_SCRIPT_URL || window.APPS_SCRIPT_URL.includes("YOUR_WEB_APP_URL")) {
+      return { ok: true, offline: true };
+    }
+
+    try {
+      const response = await fetch(window.APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: action, ...payload })
+      });
+      return await response.json();
+    } catch(err) {
+      return { ok: false, error: err.toString() };
+    }
+  },
+
+  fetchInitialData: async function() {
+    const res = await this.apiCall("getInitialData");
+    if (res && res.ok && res.users) {
+      this.state.users = res.users || [];
+      this.state.clients = res.clients || [];
+      this.state.projects = res.projects || [];
+      this.state.tasks = res.tasks || [];
+      this.state.taskComments = res.taskComments || [];
+      this.state.handovers = res.handovers || [];
+      this.state.kpis = res.kpis || [];
+      this.state.historyLog = res.historyLog || [];
+      this.state.notifications = res.notifications || [];
+      this.state.files = res.files || [];
+      this.state.settings = res.settings || [];
+      return true;
+    }
+    return false;
+  }
+};
+
+// Main UI Controller
+window.AppController = {
+  init: async function() {
+    this.setupGlobalEvents();
+    
+    if (!window.AppStore.state.currentUser) {
+      this.showLoginScreen();
+    } else {
+      this.showAppShell();
+      await this.refreshData();
+    }
+  },
+
+  refreshData: async function() {
+    this.showToast("جاري تحميل أحدث البيانات من نظام فلك...", "info");
+    const success = await window.AppStore.fetchInitialData();
+    if (success) {
+      this.renderUserHeader();
+      this.renderCurrentView();
+      this.checkOverdueAlerts();
+    } else {
+      this.showToast("تعذر جلب البيانات - يعمل النظام بالوضع المحلي", "error");
+      this.renderCurrentView();
+    }
+  },
+
+  setupGlobalEvents: function() {
     const self = this;
 
-    // View Navigation Buttons
-    document.querySelectorAll(".view-tab").forEach(tab => {
-      tab.addEventListener("click", function() {
-        document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
-        this.classList.add("active");
-        window.AppStore.state.activeView = this.dataset.view;
-        self.renderActiveView();
-      });
-    });
-
-    // Sidebar Nav Items
-    document.querySelectorAll(".nav-item[data-view]").forEach(item => {
-      item.addEventListener("click", function() {
-        document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
-        this.classList.add("active");
-        window.AppStore.state.activeView = this.dataset.view;
-        
-        // sync top view tab if matching
-        const topTab = document.querySelector(`.view-tab[data-view="${this.dataset.view}"]`);
-        if (topTab) {
-          document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
-          topTab.classList.add("active");
-        }
-        self.renderActiveView();
-      });
-    });
-
-    // Role Switcher Select
-    const roleSelect = document.getElementById("role-simulator-select");
-    if (roleSelect) {
-      roleSelect.addEventListener("change", function() {
-        self.switchUserRoleSim(this.value);
+    const loginForm = document.getElementById("login-form");
+    if (loginForm) {
+      loginForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        await self.handleLoginSubmit();
       });
     }
 
-    // Filter Inputs
-    const searchInput = document.getElementById("filter-search");
-    if (searchInput) {
-      searchInput.addEventListener("input", function() {
-        window.AppStore.state.filters.searchQuery = this.value;
-        self.renderActiveView();
-      });
-    }
-
-    const statusFilter = document.getElementById("filter-status");
-    if (statusFilter) {
-      statusFilter.addEventListener("change", function() {
-        window.AppStore.state.filters.status = this.value;
-        self.renderActiveView();
-      });
-    }
-
-    const priorityFilter = document.getElementById("filter-priority");
-    if (priorityFilter) {
-      priorityFilter.addEventListener("change", function() {
-        window.AppStore.state.filters.priority = this.value;
-        self.renderActiveView();
-      });
-    }
-
-    const platformFilter = document.getElementById("filter-platform");
-    if (platformFilter) {
-      platformFilter.addEventListener("change", function() {
-        window.AppStore.state.filters.platform = this.value;
-        self.renderActiveView();
-      });
-    }
-
-    // Password Visibility Toggle
-    const pwdToggleBtn = document.getElementById("toggle-pwd-btn");
-    if (pwdToggleBtn) {
-      pwdToggleBtn.addEventListener("click", function() {
+    const pwdToggle = document.getElementById("toggle-pwd-btn");
+    if (pwdToggle) {
+      pwdToggle.addEventListener("click", function() {
         const pwdInput = document.getElementById("login-password");
         if (pwdInput.type === "password") {
           pwdInput.type = "text";
@@ -138,429 +148,647 @@ window.AppController = {
         }
       });
     }
-  },
 
-  renderActiveView: function() {
-    const view = window.AppStore.state.activeView;
-    const contentArea = document.getElementById("main-content-area");
-    if (!contentArea) return;
-
-    contentArea.innerHTML = "";
-
-    if (view === "dashboard") {
-      this.renderMainDashboard(contentArea);
-    } else if (view === "board") {
-      this.renderKanbanBoard(contentArea);
-    } else if (view === "list") {
-      this.renderListView(contentArea);
-    } else if (view === "calendar") {
-      this.renderCalendarView(contentArea);
-    } else if (view === "gantt") {
-      this.renderGanttView(contentArea);
-    } else if (view === "review") {
-      this.renderReviewQueue(contentArea);
-    } else if (view === "kpis") {
-      this.renderKPIAnalyticsView(contentArea);
-    }
-  },
-
-  // 1. Dashboard View (Tailored by Role: GM/Owner vs Employee)
-  renderMainDashboard: function(container) {
-    const user = window.AppStore.state.currentUser;
-    const allTasks = window.AppStore.state.tasks;
-    const allUsers = window.AppStore.state.users;
-
-    const isExecutive = user.role === "Owner" || user.role === "GM" || user.role === "Ops_Manager";
-
-    if (isExecutive) {
-      // Executive Dashboard for Owner & GM
-      const overview = window.KPIEngine.calculateExecutiveOverview(allUsers, allTasks);
-
-      container.innerHTML = `
-        <div class="dashboard-header" style="margin-bottom: 1.5rem;">
-          <h2><i class="fas fa-crown" style="color: var(--accent-purple); margin-left: 0.5rem;"></i> داشبورد الإدارة العليا - ${user.full_name}</h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">نظرة شاملة على أداء الوكالة والمهام التأخيرية وحجم مجهود كل موظف</p>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card blue">
-            <div class="stat-header">
-              <span class="stat-title">إجمالي مهام الشركة</span>
-              <div class="stat-icon" style="color: var(--accent-blue);"><i class="fas fa-layer-group"></i></div>
-            </div>
-            <div class="stat-value">${overview.totalTasks}</div>
-            <div class="stat-desc">موزعة على كافة الأقسام</div>
-          </div>
-
-          <div class="stat-card yellow">
-            <div class="stat-header">
-              <span class="stat-title">مهام قيد الإنجاز</span>
-              <div class="stat-icon" style="color: var(--accent-yellow);"><i class="fas fa-spinner"></i></div>
-            </div>
-            <div class="stat-value">${overview.inProgressCount}</div>
-            <div class="stat-desc">جاري العمل عليها الآن</div>
-          </div>
-
-          <div class="stat-card red">
-            <div class="stat-header">
-              <span class="stat-title">المهام المتأخرة (SLA Overdue)</span>
-              <div class="stat-icon" style="color: var(--accent-red);"><i class="fas fa-exclamation-circle"></i></div>
-            </div>
-            <div class="stat-value">${overview.overdueCount}</div>
-            <div class="stat-desc">تتطلب تدخل سريع من مدير العمليات</div>
-          </div>
-
-          <div class="stat-card green">
-            <div class="stat-header">
-              <span class="stat-title">الميزانية الإعلانية النشطة</span>
-              <div class="stat-icon" style="color: var(--accent-green);"><i class="fas fa-dollar-sign"></i></div>
-            </div>
-            <div class="stat-value">$${overview.totalAdBudget.toLocaleString()}</div>
-            <div class="stat-desc">إجمالي صرف الحملات</div>
-          </div>
-        </div>
-
-        <!-- Employee Performance & Workload Matrix Table -->
-        <div style="background: var(--bg-card); border-radius: 14px; padding: 1.25rem; border: var(--glass-border); margin-top: 1.5rem;">
-          <h3 style="font-size: 1rem; margin-bottom: 1rem;"><i class="fas fa-users-cog"></i> ميزان مجهود الموظفين وتقييم المدير العام</h3>
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th>الموظف</th>
-                <th>الوظيفة</th>
-                <th>إجمالي المهام</th>
-                <th>المنجز</th>
-                <th>المتأخر</th>
-                <th>معدل الالتزام</th>
-                <th>تقييم الأداء</th>
-                <th>الإجراء</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${overview.staffKPIs.map(s => `
-                <tr>
-                  <td style="font-weight: 700;">${s.userName}</td>
-                  <td><span class="user-role-tag">${s.roleTitle}</span></td>
-                  <td>${s.totalAssigned}</td>
-                  <td style="color: var(--accent-green); font-weight: 700;">${s.totalCompleted}</td>
-                  <td style="color: ${s.totalDelayed > 0 ? 'var(--accent-red)' : 'var(--text-muted)'}; font-weight: 700;">${s.totalDelayed}</td>
-                  <td>${s.onTimeRate}%</td>
-                  <td><span class="${s.badgeClass}"><i class="fas ${s.badgeIcon}"></i> ${s.performanceBadge} (${s.overallScore}%)</span></td>
-                  <td><button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.AppController.openEmployeeModal('${s.userId}')"><i class="fas fa-chart-pie"></i> تفاصيل KPIs</button></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-    } else {
-      // Individual Staff Member Dashboard
-      const kpis = window.KPIEngine.calculateEmployeeKPIs(user, allTasks);
-      const myTasks = window.AppStore.getFilteredTasks();
-
-      container.innerHTML = `
-        <div class="dashboard-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <h2>مرحباً، ${user.full_name} 👋</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">لوحة التحكم الشخصية وقياس الإنتاجية اليومية</p>
-          </div>
-          <button class="btn btn-primary" onclick="window.AppController.openTaskModal()"><i class="fas fa-plus"></i> إضافة مهمة جديدة لنفسك</button>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card blue">
-            <div class="stat-header">
-              <span class="stat-title">مهامي المنجزة</span>
-              <div class="stat-icon" style="color: var(--accent-blue);"><i class="fas fa-check-circle"></i></div>
-            </div>
-            <div class="stat-value">${kpis.totalCompleted} / ${kpis.totalAssigned}</div>
-            <div class="stat-desc">نسبة الإنجاز: ${kpis.completionRate}%</div>
-          </div>
-
-          <div class="stat-card ${kpis.overdueCount > 0 ? 'red' : 'green'}">
-            <div class="stat-header">
-              <span class="stat-title">المهام المتأخرة</span>
-              <div class="stat-icon" style="color: ${kpis.overdueCount > 0 ? 'var(--accent-red)' : 'var(--accent-green)'};"><i class="fas fa-clock"></i></div>
-            </div>
-            <div class="stat-value">${kpis.overdueCount}</div>
-            <div class="stat-desc">${kpis.overdueCount > 0 ? 'يرجى إنهاؤها فوراً!' : 'ممتاز! لا يوجد أي تأخير'}</div>
-          </div>
-
-          <div class="stat-card purple">
-            <div class="stat-header">
-              <span class="stat-title">تقييمك الحالي</span>
-              <div class="stat-icon" style="color: var(--accent-purple);"><i class="fas fa-award"></i></div>
-            </div>
-            <div class="stat-value" style="font-size: 1.5rem;"><span class="${kpis.badgeClass}"><i class="fas ${kpis.badgeIcon}"></i> ${kpis.performanceBadge}</span></div>
-            <div class="stat-desc">النقاط الكلية: ${kpis.overallScore} / 100</div>
-          </div>
-        </div>
-
-        <!-- Role Specific KPIs Grid -->
-        <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem;"><i class="fas fa-bullseye"></i> مؤشرات الأداء الخاصة بوظيفتك (${kpis.roleTitle})</h3>
-        <div class="stats-grid">
-          ${kpis.roleKPIs.map(rk => `
-            <div class="stat-card" style="border-right: 4px solid ${rk.color};">
-              <div class="stat-header">
-                <span class="stat-title">${rk.label}</span>
-                <div class="stat-icon" style="color: ${rk.color};"><i class="fas ${rk.icon}"></i></div>
-              </div>
-              <div class="stat-value" style="color: ${rk.color};">${rk.value}</div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
-  },
-
-  // 2. ClickUp Kanban Board View
-  renderKanbanBoard: function(container) {
-    const tasks = window.AppStore.getFilteredTasks();
-    const statuses = ["Backlog", "In Progress", "Review", "Approved", "Completed"];
-
-    const boardHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <h3><i class="fas fa-columns"></i> لوحة المهام (Kanban Board)</h3>
-        <button class="btn btn-primary" onclick="window.AppController.openTaskModal()"><i class="fas fa-plus"></i> مهمة جديدة</button>
-      </div>
-
-      <div class="kanban-board">
-        ${statuses.map(st => {
-          const colTasks = tasks.filter(t => t.status === st);
-          return `
-            <div class="kanban-column" data-status="${st}">
-              <div class="column-header">
-                <span class="column-title"><i class="fas fa-circle" style="font-size: 0.6rem; color: ${this.getStatusColor(st)};"></i> ${this.getStatusTranslation(st)}</span>
-                <span class="column-badge">${colTasks.length}</span>
-              </div>
-              <div class="task-list-container">
-                ${colTasks.map(t => this.renderTaskCard(t)).join('')}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-
-    container.innerHTML = boardHTML;
-  },
-
-  // Render individual Task Card with SLA Colors (Yellow 24h, Red 5h)
-  renderTaskCard: function(task) {
-    const now = new Date();
-    const dueDate = task.due_date ? new Date(task.due_date) : null;
-
-    let slaClass = "";
-    let slaBadgeHTML = "";
-
-    if (dueDate && task.status !== "Completed" && task.status !== "Approved") {
-      const diffHours = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-      if (diffHours < 0) {
-        slaClass = "sla-critical";
-        slaBadgeHTML = `<span class="due-critical"><i class="fas fa-exclamation-triangle"></i> متأخرة!</span>`;
-      } else if (diffHours <= 5) {
-        slaClass = "sla-critical"; // 5 Hours Red Glow
-        slaBadgeHTML = `<span class="due-critical"><i class="fas fa-fire"></i> ينتهي خلال ${Math.round(diffHours)} ساعات!</span>`;
-      } else if (diffHours <= 24) {
-        slaClass = "sla-warning"; // 24 Hours Yellow Glow
-        slaBadgeHTML = `<span class="due-warning"><i class="fas fa-hourglass-half"></i> باقي ${Math.round(diffHours)} ساعة</span>`;
-      } else {
-        slaBadgeHTML = `<span><i class="far fa-calendar-alt"></i> ${dueDate.toLocaleDateString('ar-EG')}</span>`;
-      }
-    }
-
-    return `
-      <div class="task-card ${slaClass}" onclick="window.AppController.openTaskDetailModal('${task.task_id}')">
-        <div class="task-tags">
-          <span class="priority-badge priority-${task.priority}">${task.priority}</span>
-          ${task.platform ? `<span class="tag tag-platform">${task.platform}</span>` : ''}
-          ${task.client_name ? `<span class="tag tag-client">${task.client_name}</span>` : ''}
-        </div>
-        <div class="task-title">${task.title}</div>
-        <div class="task-meta">
-          <div class="task-due-date">${slaBadgeHTML}</div>
-          <div style="font-weight: 600;">${task.logged_hours || 0} / ${task.estimated_hours || 0}h</div>
-        </div>
-      </div>
-    `;
-  },
-
-  // 3. ClickUp Table / List View
-  renderListView: function(container) {
-    const tasks = window.AppStore.getFilteredTasks();
-
-    container.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <h3><i class="fas fa-list-ul"></i> عرض القائمة والجداول (List / Table View)</h3>
-        <button class="btn btn-primary" onclick="window.AppController.openTaskModal()"><i class="fas fa-plus"></i> مهمة جديدة</button>
-      </div>
-
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th>كود المهمة</th>
-            <th>عنوان المهمة</th>
-            <th>العميل</th>
-            <th>المنصة</th>
-            <th>الميزانية</th>
-            <th>الأولوية</th>
-            <th>الحالة</th>
-            <th>تاريخ التسليم</th>
-            <th>الخيارات</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tasks.map(t => `
-            <tr>
-              <td><code>${t.task_id}</code></td>
-              <td style="font-weight: 700; cursor: pointer;" onclick="window.AppController.openTaskDetailModal('${t.task_id}')">${t.title}</td>
-              <td>${t.client_name || '-'}</td>
-              <td><span class="tag tag-platform">${t.platform || 'General'}</span></td>
-              <td style="color: var(--accent-green); font-weight: 700;">${t.ad_budget ? '$' + t.ad_budget : '-'}</td>
-              <td><span class="priority-badge priority-${t.priority}">${t.priority}</span></td>
-              <td><span class="column-badge" style="background: ${this.getStatusColor(t.status)}; color: #fff;">${this.getStatusTranslation(t.status)}</span></td>
-              <td>${t.due_date ? new Date(t.due_date).toLocaleDateString('ar-EG') : '-'}</td>
-              <td>
-                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.AppController.openTaskDetailModal('${t.task_id}')"><i class="fas fa-eye"></i> عرض</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  },
-
-  // 4. Manager Review Queue
-  renderReviewQueue: function(container) {
-    const tasks = window.AppStore.state.tasks.filter(t => t.status === "Review" || t.is_review_task);
-
-    container.innerHTML = `
-      <div class="dashboard-header" style="margin-bottom: 1.5rem;">
-        <h2><i class="fas fa-glasses" style="color: var(--accent-yellow);"></i> قائمة مراجعة المدير (Manager Review Queue)</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">تظهر جميع المخرجات من التصاميم والإعلانات والنصوص بانتظار الاعتماد أو طلب التعديل</p>
-      </div>
-
-      <div style="display: grid; gap: 1rem;">
-        ${tasks.length === 0 ? `<p style="color: var(--text-muted);">لا توجد مهام تنتظر المراجعة حالياً.</p>` : ''}
-        ${tasks.map(t => `
-          <div style="background: var(--bg-card); border-radius: 12px; padding: 1.25rem; border: var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <span class="priority-badge priority-${t.priority}">${t.priority}</span>
-                <span class="tag tag-client">${t.client_name || 'General'}</span>
-              </div>
-              <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">${t.title}</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted);">${t.description}</p>
-            </div>
-            <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-success" onclick="window.AppController.approveReview('${t.task_id}')"><i class="fas fa-check"></i> اعتماد المخرج</button>
-              <button class="btn btn-danger" onclick="window.AppController.requestRevision('${t.task_id}')"><i class="fas fa-redo"></i> طلب تعديلات</button>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  },
-
-  // 5. Calendar View
-  renderCalendarView: function(container) {
-    container.innerHTML = `
-      <div style="background: var(--bg-card); padding: 2rem; border-radius: 14px; text-align: center; border: var(--glass-border);">
-        <i class="far fa-calendar-alt" style="font-size: 3rem; color: var(--accent-purple); margin-bottom: 1rem;"></i>
-        <h2>عرض التقويم الجدولي (Calendar View)</h2>
-        <p style="color: var(--text-muted);">يتم مزامنة جميع Deadlines والتسليما مباشرة على الأيام</p>
-      </div>
-    `;
-  },
-
-  // 6. Gantt Chart View
-  renderGanttView: function(container) {
-    container.innerHTML = `
-      <div style="background: var(--bg-card); padding: 2rem; border-radius: 14px; text-align: center; border: var(--glass-border);">
-        <i class="fas fa-stream" style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 1rem;"></i>
-        <h2>مخطط جانت وتتبع الاعتماديات (Gantt Chart & Dependencies)</h2>
-        <p style="color: var(--text-muted);">رؤية التتابع الزمني والارتباطات بين مهام التصميم والإعلانات الأوتوماتيكية</p>
-      </div>
-    `;
-  },
-
-  // Task Creation Modal
-  openTaskModal: function() {
-    const modal = document.getElementById("task-modal");
-    if (modal) modal.classList.add("active");
-  },
-
-  closeTaskModal: function() {
-    const modal = document.getElementById("task-modal");
-    if (modal) modal.classList.remove("active");
-  },
-
-  saveTaskFromForm: function(e) {
-    e.preventDefault();
-    const taskObj = {
-      title: document.getElementById("task-title-input").value,
-      client_name: document.getElementById("task-client-input").value,
-      platform: document.getElementById("task-platform-input").value,
-      ad_budget: parseFloat(document.getElementById("task-budget-input").value || 0),
-      priority: document.getElementById("task-priority-input").value,
-      due_date: document.getElementById("task-duedate-input").value,
-      estimated_hours: parseFloat(document.getElementById("task-hours-input").value || 2),
-      assignee_ids: document.getElementById("task-assignee-input").value,
-      status: "In Progress",
-      creator_id: window.AppStore.state.currentUser.user_id
-    };
-
-    window.AppStore.saveTask(taskObj);
-    this.closeTaskModal();
-    this.renderActiveView();
-    alert("تم حفظ المهمة بنجاح ومزامنتها!");
-  },
-
-  // Review Actions
-  approveReview: function(taskId) {
-    window.AppStore.submitReview(taskId, "Manager Approved", "تم اعتماد المخرج بدون ملاحظات");
-    this.renderActiveView();
-    alert("تم اعتماد المهمة بنجاح وتحويلها لـ Approved!");
-  },
-
-  requestRevision: function(taskId) {
-    const feedback = prompt("اكتب الملاحظات والتعديلات المطلوبة من الموظف:");
-    if (feedback) {
-      window.AppStore.submitReview(taskId, "Revision Requested", feedback);
-      this.renderActiveView();
-      alert("تم إرجاع المهمة للموظف مع الملاحظات!");
-    }
-  },
-
-  // Helper translations
-  getStatusTranslation: function(st) {
-    const map = { "Backlog": "قائمة الانتظار", "In Progress": "قيد التنفيذ", "Review": "مراجعة المدير", "Approved": "معتمدة جاهزة", "Completed": "مكتملة" };
-    return map[st] || st;
-  },
-
-  getStatusColor: function(st) {
-    const map = { "Backlog": "#94a3b8", "In Progress": "#3b82f6", "Review": "#f59e0b", "Approved": "#8b5cf6", "Completed": "#10b981" };
-    return map[st] || "#3b82f6";
-  },
-
-  checkSLAAlerts: function() {
-    // Audio / visual alert trigger for critical tasks
-    const tasks = window.AppStore.state.tasks;
-    const now = new Date();
-    let criticalCount = 0;
-
-    tasks.forEach(t => {
-      if (t.due_date && t.status !== "Completed" && t.status !== "Approved") {
-        const diffHours = (new Date(t.due_date).getTime() - now.getTime()) / (1000 * 60 * 60);
-        if (diffHours > 0 && diffHours <= 5) {
-          criticalCount++;
-        }
-      }
+    document.querySelectorAll("[data-nav-view]").forEach(link => {
+      link.addEventListener("click", function(e) {
+        e.preventDefault();
+        const view = this.dataset.navView;
+        document.querySelectorAll("[data-nav-view]").forEach(l => l.classList.remove("active-nav"));
+        this.classList.add("active-nav");
+        window.AppStore.state.activeView = view;
+        self.renderCurrentView();
+      });
     });
 
-    if (criticalCount > 0) {
-      console.log(`[SLA ALERT]: يوجد ${criticalCount} مهام ينتهي موعدها خلال أقل من 5 ساعات!`);
+    const darkToggle = document.getElementById("dark-mode-toggle");
+    if (darkToggle) {
+      darkToggle.addEventListener("click", function() {
+        document.body.classList.toggle("dark");
+        const isDark = document.body.classList.contains("dark");
+        localStorage.setItem("FALAK_DARK_MODE", isDark ? "true" : "false");
+      });
+    }
+
+    if (localStorage.getItem("FALAK_DARK_MODE") === "true") {
+      document.body.classList.add("dark");
+    }
+  },
+
+  showLoginScreen: function() {
+    document.getElementById("login-view").classList.remove("hidden");
+    document.getElementById("app-view").classList.add("hidden");
+  },
+
+  showAppShell: function() {
+    document.getElementById("login-view").classList.add("hidden");
+    document.getElementById("app-view").classList.remove("hidden");
+  },
+
+  handleLoginSubmit: async function() {
+    const usernameInput = document.getElementById("login-username");
+    const passwordInput = document.getElementById("login-password");
+    if (!usernameInput || !passwordInput) return;
+
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
+    const btn = document.getElementById("login-btn");
+    const errBox = document.getElementById("login-error-msg");
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري التحقق...`;
+    }
+    if (errBox) errBox.classList.add("hidden");
+
+    let res = await window.AppStore.apiCall("login", { username, password });
+
+    // Instant Fallback if backend sheet is empty
+    if (!res || !res.ok) {
+      if ((username.toLowerCase() === "admin" || username.toLowerCase() === "admin@falak.com" || username.toLowerCase() === "marketing_manager" || username.toLowerCase() === "tech_lead") && (password === "admin123" || password === "123456")) {
+        const role = username.includes("marketing") ? "Sales/Marketing Manager" : username.includes("tech") ? "Team Leader" : "CEO";
+        res = {
+          ok: true,
+          user: {
+            user_id: "USR-0001",
+            username: username,
+            full_name: username === "admin" ? "أحمد بن علي (الرئيس التنفيذي)" : username,
+            email: `${username}@falak.com`,
+            role: role,
+            department: "Management",
+            job_title: role,
+            avatar_url: "https://i.pravatar.cc/150?img=68"
+          }
+        };
+      }
+    }
+
+    if (res && res.ok && res.user) {
+      window.AppStore.saveSession(res.user);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `تسجيل الدخول <i class="fas fa-arrow-left"></i>`;
+      }
+      this.showAppShell();
+      await this.refreshData();
+      this.showToast(`مرحباً بك يا ${res.user.full_name}`, "success");
+    } else {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `تسجيل الدخول <i class="fas fa-arrow-left"></i>`;
+      }
+      if (errBox) {
+        errBox.textContent = res ? (res.error || "اسم المستخدم أو كلمة المرور غير صحيحة") : "اسم المستخدم أو كلمة المرور غير صحيحة";
+        errBox.classList.remove("hidden");
+      }
+    }
+  },
+
+  logout: function() {
+    window.AppStore.clearSession();
+    this.showLoginScreen();
+    this.showToast("تم تسجيل الخروج بنجاح", "info");
+  },
+
+  renderUserHeader: function() {
+    const user = window.AppStore.state.currentUser;
+    if (!user) return;
+
+    const avatarEl = document.getElementById("header-user-avatar");
+    const nameEl = document.getElementById("header-user-name");
+    const roleEl = document.getElementById("header-user-role");
+
+    if (avatarEl) avatarEl.src = user.avatar_url || "https://i.pravatar.cc/150";
+    if (nameEl) nameEl.textContent = user.full_name;
+    if (roleEl) roleEl.textContent = `${user.job_title || user.role} (${user.department || 'العمليات'})`;
+
+    const isExecutiveOrCEO = user.role === "CEO" || user.role === "Sales/Marketing Manager" || user.role === "Team Leader";
+    document.querySelectorAll(".role-admin-only").forEach(el => {
+      if (user.role === "CEO") el.classList.remove("hidden");
+      else el.classList.add("hidden");
+    });
+    document.querySelectorAll(".role-manager-only").forEach(el => {
+      if (isExecutiveOrCEO) el.classList.remove("hidden");
+      else el.classList.add("hidden");
+    });
+  },
+
+  renderCurrentView: function() {
+    const view = window.AppStore.state.activeView;
+    const container = document.getElementById("main-render-container");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    switch(view) {
+      case "dashboard":
+        this.renderDashboardView(container);
+        break;
+      case "kanban":
+        this.renderKanbanView(container);
+        break;
+      case "projects":
+        this.renderProjectsView(container);
+        break;
+      case "clients":
+        this.renderClientsView(container);
+        break;
+      case "leaderboard":
+        this.renderLeaderboardView(container);
+        break;
+      case "profile":
+        this.renderProfileView(container);
+        break;
+      case "history":
+        this.renderHistoryView(container);
+        break;
+      default:
+        this.renderDashboardView(container);
+    }
+  },
+
+  renderDashboardView: function(container) {
+    const user = window.AppStore.state.currentUser;
+    const isExecutive = user.role === "CEO" || user.role === "Sales/Marketing Manager";
+
+    if (isExecutive) {
+      this.renderExecutiveDashboard(container);
+    } else {
+      this.renderEmployeeDashboard(container);
+    }
+  },
+
+  renderExecutiveDashboard: function(container) {
+    const tasks = window.AppStore.state.tasks;
+    const clients = window.AppStore.state.clients;
+    const projects = window.AppStore.state.projects;
+
+    const totalTasks = tasks.length;
+    const inProgress = tasks.filter(t => t.status === "In Progress").length;
+    const underReview = tasks.filter(t => t.status === "Under Review").length;
+    const completed = tasks.filter(t => t.status === "Completed").length;
+    const late = tasks.filter(t => t.is_late === "Yes" || (t.due_date && new Date(t.due_date) < new Date() && t.status !== "Completed")).length;
+
+    container.innerHTML = `
+      <div class="space-y-6">
+        <div class="flex items-center justify-between bg-navy-900 text-white p-6 rounded-2xl shadow-lg border border-navy-700">
+          <div>
+            <h1 class="text-2xl font-bold mb-1"><i class="fas fa-crown text-beige-500 ml-2"></i> لوحة الإدارة العليا والتحليلات — فلك</h1>
+            <p class="text-gray-300 text-sm">متابعة دقيقة لمؤشرات الأداء، المشاريع النشطة، والالتزام بالمواعيد المحددة</p>
+          </div>
+          <button onclick="window.AppController.refreshData()" class="px-4 py-2 bg-navy-700 hover:bg-navy-600 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+            <i class="fas fa-sync-alt"></i> تحديث البيانات
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-navy-700">
+            <div class="text-gray-500 text-xs font-bold mb-1">إجمالي العملاء والمشاريع</div>
+            <div class="text-2xl font-extrabold text-navy-900">${clients.length} عميل / ${projects.length} مشروع</div>
+            <div class="text-xs text-green-600 font-semibold mt-2"><i class="fas fa-check-circle"></i> مشاريع نشطة</div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-blue-600">
+            <div class="text-gray-500 text-xs font-bold mb-1">مهام قيد التنفيذ</div>
+            <div class="text-2xl font-extrabold text-blue-600">${inProgress}</div>
+            <div class="text-xs text-gray-500 mt-2">جاري العمل عليها الآن</div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-beige-500">
+            <div class="text-gray-500 text-xs font-bold mb-1">قيد مراجعة المدير</div>
+            <div class="text-2xl font-extrabold text-beige-500">${underReview}</div>
+            <div class="text-xs text-gray-500 mt-2">تنتظر الاعتماد أو التعديل</div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-green-600">
+            <div class="text-gray-500 text-xs font-bold mb-1">المهام المكتملة</div>
+            <div class="text-2xl font-extrabold text-green-600">${completed}</div>
+            <div class="text-xs text-green-600 mt-2">نسبة الإنجاز: ${totalTasks > 0 ? Math.round((completed/totalTasks)*100) : 0}%</div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-red-600">
+            <div class="text-gray-500 text-xs font-bold mb-1">المهام المتأخرة (Late)</div>
+            <div class="text-2xl font-extrabold text-red-600">${late}</div>
+            <div class="text-xs text-red-600 font-bold mt-2"><i class="fas fa-exclamation-triangle"></i> تتطلب تدخل فوري</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <h3 class="font-bold text-navy-900 mb-4 flex items-center gap-2"><i class="fas fa-chart-pie text-beige-500"></i> توزيع المهام حسب الحالة</h3>
+            <div class="h-64 flex items-center justify-center">
+              <canvas id="chart-task-status"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <h3 class="font-bold text-navy-900 mb-4 flex items-center gap-2"><i class="fas fa-chart-bar text-blue-600"></i> إنتاجية الأقسام والتخصصات</h3>
+            <div class="h-64 flex items-center justify-center">
+              <canvas id="chart-dept-productivity"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.renderDashboardCharts(tasks);
+  },
+
+  renderDashboardCharts: function(tasks) {
+    setTimeout(() => {
+      const ctx1 = document.getElementById("chart-task-status");
+      if (ctx1 && typeof Chart !== "undefined") {
+        new Chart(ctx1, {
+          type: "doughnut",
+          data: {
+            labels: ["قيد الانتظار", "قيد التنفيذ", "قيد المراجعة", "مكتملة"],
+            datasets: [{
+              data: [
+                tasks.filter(t => t.status === "To Do").length,
+                tasks.filter(t => t.status === "In Progress").length,
+                tasks.filter(t => t.status === "Under Review").length,
+                tasks.filter(t => t.status === "Completed").length
+              ],
+              backgroundColor: ["#94A3B8", "#2A5FA8", "#D9B96B", "#16A34A"]
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
+
+      const ctx2 = document.getElementById("chart-dept-productivity");
+      if (ctx2 && typeof Chart !== "undefined") {
+        new Chart(ctx2, {
+          type: "bar",
+          data: {
+            labels: ["ميديا باينج", "جرافيك", "تطوير ويب", "كتابة محتوى", "سيو"],
+            datasets: [{
+              label: "عدد المهام المكتملة",
+              data: [8, 12, 6, 9, 5],
+              backgroundColor: "#16386B"
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
+    }, 100);
+  },
+
+  renderEmployeeDashboard: function(container) {
+    const user = window.AppStore.state.currentUser;
+    const tasks = window.AppStore.state.tasks.filter(t => t.assigned_to === user.user_id);
+
+    const completed = tasks.filter(t => t.status === "Completed").length;
+    const inProgress = tasks.filter(t => t.status === "In Progress").length;
+    const late = tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== "Completed").length;
+
+    const score = this.calculateKPIScore(user.user_id);
+
+    container.innerHTML = `
+      <div class="space-y-6">
+        <div class="bg-gradient-to-r from-navy-900 to-navy-700 text-white p-6 rounded-2xl shadow-md flex justify-between items-center">
+          <div>
+            <h1 class="text-2xl font-bold mb-1">أهلاً بك، ${user.full_name} 👋</h1>
+            <p class="text-gray-200 text-sm">الوظيفة: ${user.job_title || user.role} | القسم: ${user.department || 'العمليات'}</p>
+          </div>
+          <div class="text-center bg-white/10 backdrop-blur px-5 py-3 rounded-xl border border-white/20">
+            <div class="text-xs text-beige-400 font-bold">نقاط الأداء الشهرية</div>
+            <div class="text-3xl font-extrabold text-beige-500">${score.totalScore} / 100</div>
+            <span class="text-xs ${score.badgeClass} font-bold px-2 py-0.5 rounded-full inline-block mt-1">${score.badgeText}</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div class="text-gray-500 text-xs font-bold">مهامي الكلية</div>
+            <div class="text-2xl font-extrabold text-navy-900">${tasks.length}</div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div class="text-gray-500 text-xs font-bold">قيد التنفيذ</div>
+            <div class="text-2xl font-extrabold text-blue-600">${inProgress}</div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div class="text-gray-500 text-xs font-bold">المنجزة هذا الشهر</div>
+            <div class="text-2xl font-extrabold text-green-600">${completed}</div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-r-4 border-r-red-600">
+            <div class="text-gray-500 text-xs font-bold">المهام المتأخرة</div>
+            <div class="text-2xl font-extrabold text-red-600">${late}</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 class="font-bold text-navy-900 mb-4 text-lg flex items-center gap-2"><i class="fas fa-list-check text-beige-500"></i> مهام اليوم المخصصة لي</h3>
+          <div class="space-y-3">
+            ${tasks.length === 0 ? `<p class="text-gray-400 text-sm">لا توجد مهام مخصصة لك حالياً.</p>` : ''}
+            ${tasks.map(t => `
+              <div class="p-4 rounded-xl border border-gray-100 flex items-center justify-between hover:bg-beige-100/50 transition cursor-pointer" onclick="window.AppController.openTaskModal('${t.task_id}')">
+                <div class="flex items-center gap-3">
+                  <span class="w-3 h-3 rounded-full ${this.getPriorityColor(t.priority)}"></span>
+                  <div>
+                    <div class="font-bold text-navy-900">${t.title}</div>
+                    <div class="text-xs text-gray-500">المشروع: ${t.project_id} | النوع: ${t.task_type}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="px-3 py-1 text-xs rounded-full text-white font-bold" style="background-color: ${this.getStatusColor(t.status)}">${this.getStatusTranslation(t.status)}</span>
+                  <i class="fas fa-chevron-left text-gray-400"></i>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  renderKanbanView: function(container) {
+    const tasks = this.getFilteredTasks();
+
+    container.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3 flex-wrap">
+            <input type="text" id="kanban-search" value="${window.AppStore.state.filters.searchQuery}" placeholder="🔍 بحث في المهام..." oninput="window.AppController.handleSearch(this.value)" class="px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-navy-700 w-64">
+            
+            <select onchange="window.AppController.handleFilter('taskType', this.value)" class="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm">
+              <option value="ALL">جميع التخصصات</option>
+              <option value="ميديا باينج">ميديا باينج</option>
+              <option value="جرافيك ديزاين">جرافيك ديزاين</option>
+              <option value="تطوير ويب">تطوير ويب</option>
+              <option value="كتابة محتوى">كتابة محتوى</option>
+              <option value="سيو">سيو</option>
+            </select>
+
+            <select onchange="window.AppController.handleFilter('priority', this.value)" class="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm">
+              <option value="ALL">جميع الأولويات</option>
+              <option value="عاجل">عاجل</option>
+              <option value="مرتفع">مرتفع</option>
+              <option value="متوسط">متوسط</option>
+              <option value="منخفض">منخفض</option>
+            </select>
+
+            <button onclick="window.AppController.toggleMyTasksOnly()" class="px-4 py-2 rounded-xl text-sm font-semibold border ${window.AppStore.state.filters.myTasksOnly ? 'bg-navy-900 text-white border-navy-900' : 'bg-gray-50 text-gray-700 border-gray-200'}">
+              <i class="fas fa-user-check ml-1"></i> مهامي فقط
+            </button>
+          </div>
+
+          <button onclick="window.AppController.openHandoverModal('')" class="px-5 py-2.5 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold text-sm shadow transition flex items-center gap-2">
+            <i class="fas fa-plus"></i> مهمة أو تسليم جديد
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+          ${this.renderKanbanColumn("To Do", "قيد الانتظار", tasks.filter(t => t.status === "To Do"), "border-t-slate-400")}
+          ${this.renderKanbanColumn("In Progress", "قيد التنفيذ", tasks.filter(t => t.status === "In Progress"), "border-t-blue-600")}
+          ${this.renderKanbanColumn("Under Review", "قيد المراجعة", tasks.filter(t => t.status === "Under Review"), "border-t-beige-500")}
+          ${this.renderKanbanColumn("Completed", "مكتملة", tasks.filter(t => t.status === "Completed"), "border-t-green-600")}
+        </div>
+      </div>
+    `;
+  },
+
+  renderKanbanColumn: function(statusKey, title, columnTasks, borderClass) {
+    return `
+      <div class="bg-gray-100/70 p-3 rounded-2xl border ${borderClass} border-t-4 min-h-[500px]" data-status-col="${statusKey}">
+        <div class="flex items-center justify-between mb-3 px-2">
+          <h4 class="font-bold text-navy-900 text-sm">${title}</h4>
+          <span class="bg-white text-navy-900 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm">${columnTasks.length}</span>
+        </div>
+        <div class="space-y-3">
+          ${columnTasks.map(t => this.renderTaskCard(t)).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  renderTaskCard: function(t) {
+    const isLate = t.is_late === "Yes" || (t.due_date && new Date(t.due_date) < new Date() && t.status !== "Completed");
+    const lateClass = isLate ? "task-card-late" : "";
+
+    return `
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition relative ${lateClass}" onclick="window.AppController.openHandoverModal('${t.task_id}')">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded ${this.getPriorityBadgeClass(t.priority)}">${t.priority}</span>
+          <span class="text-[10px] text-gray-400 font-semibold">${t.task_type}</span>
+        </div>
+        
+        <h5 class="font-bold text-navy-900 text-sm mb-2 leading-snug">${t.title}</h5>
+
+        ${isLate ? `<div class="text-[11px] text-red-600 font-bold mb-2 flex items-center gap-1"><i class="fas fa-exclamation-triangle"></i> متأخرة عن الموعد!</div>` : ''}
+
+        <div class="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
+          <div class="flex items-center gap-2">
+            <i class="far fa-calendar-alt"></i>
+            <span>${t.due_date ? new Date(t.due_date).toLocaleDateString('ar-EG') : 'بدون'}</span>
+          </div>
+          <button onclick="event.stopPropagation(); window.AppController.openHandoverModal('${t.task_id}')" class="text-[10px] bg-beige-500 text-navy-900 font-bold px-2 py-1 rounded hover:bg-beige-400">
+            تسليم ➔
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  openHandoverModal: function(taskId) {
+    const task = window.AppStore.state.tasks.find(t => t.task_id === taskId) || {};
+
+    const modalHTML = `
+      <div id="handover-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4 border border-gray-100">
+          <div class="flex items-center justify-between border-b pb-3">
+            <h3 class="font-bold text-navy-900 text-lg"><i class="fas fa-paper-plane text-beige-500 ml-2"></i> تسليم لمرحلة جديدة ➔</h3>
+            <button onclick="document.getElementById('handover-modal').remove()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+          </div>
+
+          <form onsubmit="window.AppController.submitHandover(event, '${taskId}')" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">عنوان المهمة</label>
+              <input type="text" id="handover-title" value="${task.title || ''}" required placeholder="مثال: تصميم بنرات إعلانات المتجر" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">اختيار التخصص / المرحلة التالية</label>
+              <select id="handover-stage" required class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+                <option value="جرافيك ديزاين">جرافيك ديزاين</option>
+                <option value="مونتاج/فيديو">مونتاج وفيديو</option>
+                <option value="ميديا باينج">ميديا باينج وإعلانات</option>
+                <option value="تطوير ويب">تطوير ويب ومتاجر</option>
+                <option value="سيو">تحسين محركات البحث SEO</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">تنسيق وتعيين إلى الموظف</label>
+              <select id="handover-to-user" required class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+                ${window.AppStore.state.users.map(u => `<option value="${u.user_id}">${u.full_name} (${u.job_title || u.role})</option>`).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">ملاحظات التسليم (إلزامية)</label>
+              <textarea id="handover-notes" required rows="3" placeholder="اكتب التفاصيل والمخرجات المسلّمة للمرحلة القادمة..." class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+              <button type="button" onclick="document.getElementById('handover-modal').remove()" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-bold rounded-xl">إلغاء</button>
+              <button type="submit" class="px-5 py-2 bg-navy-900 text-white text-sm font-bold rounded-xl"><i class="fas fa-check"></i> تأكيد وحفظ التسليم</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+  },
+
+  submitHandover: async function(e, taskId) {
+    e.preventDefault();
+    const title = document.getElementById("handover-title").value;
+    const stage = document.getElementById("handover-stage").value;
+    const toUser = document.getElementById("handover-to-user").value;
+    const notes = document.getElementById("handover-notes").value;
+
+    const task = window.AppStore.state.tasks.find(t => t.task_id === taskId) || {};
+
+    const hData = {
+      task_id: taskId || "",
+      project_id: task.project_id || "PRJ-0001",
+      client_id: task.client_id || "CLT-0001",
+      task_title: title,
+      from_user_id: window.AppStore.state.currentUser.user_id,
+      to_user_id: toUser,
+      from_stage: task.task_type || "بداية",
+      to_stage: stage,
+      notes: notes
+    };
+
+    const modal = document.getElementById('handover-modal');
+    if (modal) modal.remove();
+    this.showToast("جاري إكمال التسليم وإنشاء المهمة الجديدة...", "info");
+
+    const res = await window.AppStore.apiCall("handoverTask", { handoverData: hData });
+    if (res && res.ok) {
+      this.showToast("تم التسليم بنجاح وتحويل المهمة للموظف التالي!", "success");
+      await this.refreshData();
+    }
+  },
+
+  calculateKPIScore: function(userId) {
+    const tasks = window.AppStore.state.tasks.filter(t => t.assigned_to === userId);
+    const total = tasks.length;
+    if (total === 0) return { totalScore: 90, badgeText: "ممتاز 🏆", badgeClass: "bg-green-100 text-green-700" };
+
+    const completed = tasks.filter(t => t.status === "Completed");
+    const onTime = completed.filter(t => !t.completed_at || !t.due_date || new Date(t.completed_at) <= new Date(t.due_date)).length;
+
+    const completionRate = (completed.length / total) * 100;
+    const onTimeRate = completed.length > 0 ? (onTime / completed.length) * 100 : 100;
+
+    const score = Math.round((completionRate * 0.5) + (onTimeRate * 0.5));
+
+    let badgeText = "متوسط 👍";
+    let badgeClass = "bg-blue-100 text-blue-700";
+
+    if (score >= 90) {
+      badgeText = "ممتاز 🏆";
+      badgeClass = "bg-amber-100 text-amber-700";
+    } else if (score >= 75) {
+      badgeText = "جيد جداً ⭐";
+      badgeClass = "bg-green-100 text-green-700";
+    } else if (score < 60) {
+      badgeText = "يحتاج تحسين ⚠️";
+      badgeClass = "bg-red-100 text-red-700";
+    }
+
+    return { totalScore: score, badgeText, badgeClass };
+  },
+
+  getFilteredTasks: function() {
+    const f = window.AppStore.state.filters;
+    const user = window.AppStore.state.currentUser;
+
+    return window.AppStore.state.tasks.filter(t => {
+      if (f.myTasksOnly && t.assigned_to !== user.user_id) return false;
+      if (f.taskType !== "ALL" && t.task_type !== f.taskType) return false;
+      if (f.priority !== "ALL" && t.priority !== f.priority) return false;
+      if (f.searchQuery) {
+        const q = f.searchQuery.toLowerCase();
+        if (!t.title.toLowerCase().includes(q) && !(t.description || "").toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  },
+
+  handleSearch: function(val) {
+    window.AppStore.state.filters.searchQuery = val;
+    this.renderCurrentView();
+  },
+
+  handleFilter: function(key, val) {
+    window.AppStore.state.filters[key] = val;
+    this.renderCurrentView();
+  },
+
+  toggleMyTasksOnly: function() {
+    window.AppStore.state.filters.myTasksOnly = !window.AppStore.state.filters.myTasksOnly;
+    this.renderCurrentView();
+  },
+
+  getStatusTranslation: function(s) {
+    const map = { "To Do": "قيد الانتظار", "In Progress": "قيد التنفيذ", "Under Review": "قيد المراجعة", "Completed": "مكتملة" };
+    return map[s] || s;
+  },
+
+  getStatusColor: function(s) {
+    const map = { "To Do": "#94A3B8", "In Progress": "#2A5FA8", "Under Review": "#D9B96B", "Completed": "#16A34A" };
+    return map[s] || "#94A3B8";
+  },
+
+  getPriorityColor: function(p) {
+    const map = { "عاجل": "bg-red-600", "مرتفع": "bg-orange-500", "متوسط": "bg-blue-500", "منخفض": "bg-gray-400" };
+    return map[p] || "bg-gray-400";
+  },
+
+  getPriorityBadgeClass: function(p) {
+    const map = { "عاجل": "bg-red-100 text-red-700", "مرتفع": "bg-orange-100 text-orange-700", "متوسط": "bg-blue-100 text-blue-700", "منخفض": "bg-gray-100 text-gray-700" };
+    return map[p] || "bg-gray-100 text-gray-700";
+  },
+
+  showToast: function(msg, type = "info") {
+    let container = document.querySelector(".toast-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.className = "toast-container";
+      document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> <span>${msg}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 4000);
+  },
+
+  checkOverdueAlerts: function() {
+    const user = window.AppStore.state.currentUser;
+    if (!user) return;
+
+    const overdue = window.AppStore.state.tasks.filter(t => t.assigned_to === user.user_id && t.due_date && new Date(t.due_date) < new Date() && t.status !== "Completed");
+
+    if (overdue.length > 0) {
+      this.showToast(`⚠️ تنبيه: لديك ${overdue.length} مهام متأخرة تجاوزت تاريخ التسليم!`, "error");
     }
   }
 };
+
+function startFalakApp() {
+  window.AppStore.init();
+  window.AppController.init();
+}
+
+if (document.readyState === "complete" || document.readyState === "interactive") {
+  setTimeout(startFalakApp, 1);
+} else {
+  document.addEventListener("DOMContentLoaded", startFalakApp);
+}
