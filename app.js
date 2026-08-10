@@ -3,7 +3,7 @@
  * Full CRUD for Employees, Clients, Projects, Tasks + Kanban Drag&Drop + Handover + KPIs
  */
 
-window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyL-cX0UWmMp5MbKW2mxzp7jQtDBiz8e_QXU-ujNfBcR-28LZekirwXhr5PmNGVGkDc9A/exec";
+window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPAXJTBUCZEHFNFK_f9Y5IKVAkzaUHxeccQifgVL3DjfMjSCKBQgdM4gqZyICT92pCHw/exec";
 
 /* ═══════════════════════════════════════════════
    1. GLOBAL APPLICATION STORE
