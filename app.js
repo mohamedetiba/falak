@@ -3,7 +3,7 @@
  * Compact & Fully Functional Build
  */
 
-window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyL-cX0UWmMp5MbKW2mxzp7jQtDBiz8e_QXU-ujNfBcR-28LZekirwXhr5PmNGVGkDc9A/exec";
+window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqJE5ZGsyRlXyTKWKI8Ed556N74AlyLVIYqnIrJA-hWD-ELNbq_vjRgNgY0E2ljz9Z/exec";
 
 // Global Application Store
 window.AppStore = {
