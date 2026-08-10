@@ -481,7 +481,7 @@ window.AppController = {
           <div class="space-y-3">
             ${tasks.length === 0 ? `<p class="text-gray-400 text-sm">لا توجد مهام مخصصة لك حالياً.</p>` : ''}
             ${tasks.map(t => `
-              <div class="p-4 rounded-xl border border-gray-100 flex items-center justify-between hover:bg-beige-100/50 transition cursor-pointer" onclick="window.AppController.openTaskModal('${t.task_id}')">
+              <div class="p-4 rounded-xl border border-gray-100 flex items-center justify-between hover:bg-beige-100/50 transition cursor-pointer" onclick="window.AppController.openHandoverModal('${t.task_id}')">
                 <div class="flex items-center gap-3">
                   <span class="w-3 h-3 rounded-full ${this.getPriorityColor(t.priority)}"></span>
                   <div>
@@ -701,6 +701,240 @@ window.AppController = {
     }
 
     return { totalScore: score, badgeText, badgeClass };
+  },
+
+  // 3. Projects View
+  renderProjectsView: function(container) {
+    const projects = window.AppStore.state.projects;
+
+    container.innerHTML = `
+      <div class="space-y-6">
+        <div class="flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div>
+            <h2 class="text-xl font-bold text-navy-900"><i class="fas fa-project-diagram text-purple-600 ml-2"></i> المشاريع المفتوحة والنشطة</h2>
+            <p class="text-xs text-gray-500 mt-1">عرض جميع المشاريع والنسب المحققة ونطاق التسليم</p>
+          </div>
+          <button onclick="window.AppController.showToast('ميزة إضافة مشروع جديد مفعّلة عبر أدمن التسويق', 'info')" class="px-4 py-2 bg-navy-900 text-white rounded-xl text-xs font-bold shadow">
+            <i class="fas fa-plus"></i> مشروع جديد
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ${projects.length === 0 ? `<p class="text-gray-400 text-sm">لا توجد مشاريع مضافة حالياً.</p>` : ''}
+          ${projects.map(p => `
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold px-3 py-1 bg-purple-100 text-purple-700 rounded-full">${p.project_type || 'مشروع'}</span>
+                <span class="text-xs text-gray-400 font-semibold">${p.start_date ? new Date(p.start_date).toLocaleDateString('ar-EG') : ''} ➔ ${p.due_date ? new Date(p.due_date).toLocaleDateString('ar-EG') : ''}</span>
+              </div>
+
+              <div>
+                <h3 class="font-bold text-navy-900 text-base mb-1">${p.project_name}</h3>
+                <p class="text-xs text-gray-500 leading-relaxed">${p.description || ''}</p>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-xs font-bold mb-1">
+                  <span class="text-gray-600">نسبة التقدم الإجمالية</span>
+                  <span class="text-navy-900">${p.progress || 0}%</span>
+                </div>
+                <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-gradient-to-r from-navy-700 to-beige-500 h-full rounded-full" style="width: ${p.progress || 0}%"></div>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-3 border-t border-gray-50 text-xs">
+                <span class="font-bold text-green-600">الميزانية: $${(p.budget || 0).toLocaleString()}</span>
+                <button onclick="window.AppStore.state.activeView = 'kanban'; window.AppController.renderCurrentView();" class="text-navy-900 font-bold hover:underline">عرض الكانبان ➔</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  // 4. Clients View
+  renderClientsView: function(container) {
+    const clients = window.AppStore.state.clients;
+
+    container.innerHTML = `
+      <div class="space-y-6">
+        <div class="flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div>
+            <h2 class="text-xl font-bold text-navy-900"><i class="fas fa-building text-green-600 ml-2"></i> دليل العملاء والشركات</h2>
+            <p class="text-xs text-gray-500 mt-1">سجل العملاء وبيانات التواصل ومجلدات Google Drive المربوطة</p>
+          </div>
+          <button onclick="window.AppController.showToast('ميزة إضافة عميل تُنشئ مجلد تلقائي في Google Drive', 'info')" class="px-4 py-2 bg-navy-900 text-white rounded-xl text-xs font-bold shadow">
+            <i class="fas fa-plus"></i> عميل جديد
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          ${clients.length === 0 ? `<p class="text-gray-400 text-sm">لا يوجد عملاء مضافين حالياً.</p>` : ''}
+          ${clients.map(c => `
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+              <div class="w-12 h-12 rounded-2xl bg-navy-900 text-beige-500 flex items-center justify-center font-black text-xl shadow">
+                ${c.client_name ? c.client_name.charAt(0) : 'C'}
+              </div>
+              <div>
+                <h3 class="font-bold text-navy-900 text-base">${c.client_name}</h3>
+                <div class="text-xs text-gray-500">${c.company || ''} | ${c.industry || 'التجارة'}</div>
+              </div>
+              <div class="text-xs space-y-1 pt-2 border-t border-gray-50 text-gray-600">
+                <div><i class="fas fa-user text-gray-400 ml-1"></i> المسؤول: ${c.contact_person || '-'}</div>
+                <div><i class="fas fa-phone text-gray-400 ml-1"></i> الجوال: ${c.phone || '-'}</div>
+                <div><i class="fas fa-envelope text-gray-400 ml-1"></i> الإيميل: ${c.email || '-'}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  // 5. Leaderboard View (Ideal Employee)
+  renderLeaderboardView: function(container) {
+    const users = window.AppStore.state.users;
+
+    const ranked = users.map(u => {
+      const scoreData = this.calculateKPIScore(u.user_id);
+      return { ...u, ...scoreData };
+    }).sort((a, b) => b.totalScore - a.totalScore);
+
+    const first = ranked[0] || {};
+
+    container.innerHTML = `
+      <div class="space-y-6">
+        <div class="golden-trophy-glow text-navy-900 p-8 rounded-3xl text-center space-y-3 relative overflow-hidden">
+          <div class="text-4xl"><i class="fas fa-trophy text-amber-900"></i></div>
+          <span class="px-4 py-1 bg-navy-900 text-beige-400 text-xs font-black rounded-full uppercase inline-block">🏆 موظف الشهر الأول</span>
+          <h2 class="text-3xl font-black">${first.full_name || 'أحمد بن علي'}</h2>
+          <p class="text-sm font-bold text-navy-800">${first.job_title || first.role} | النقاط: ${first.totalScore || 98} / 100</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 class="font-bold text-navy-900 text-base mb-4"><i class="fas fa-list-ol text-amber-500 ml-2"></i> قائمة ترتيب نقاط أداء الفريق (Leaderboard)</h3>
+          <div class="space-y-3">
+            ${ranked.map((u, idx) => `
+              <div class="p-4 rounded-xl border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition">
+                <div class="flex items-center gap-4">
+                  <span class="w-8 h-8 rounded-full font-extrabold text-sm flex items-center justify-center ${idx === 0 ? 'bg-amber-400 text-navy-900' : idx === 1 ? 'bg-gray-300 text-gray-800' : idx === 2 ? 'bg-amber-700 text-white' : 'bg-gray-100 text-gray-600'}">
+                    ${idx + 1}
+                  </span>
+                  <img src="${u.avatar_url || 'https://i.pravatar.cc/150'}" class="w-10 h-10 rounded-full object-cover border">
+                  <div>
+                    <div class="font-bold text-navy-900 text-sm">${u.full_name}</div>
+                    <div class="text-xs text-gray-400">${u.job_title || u.role}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-sm font-black text-navy-900">${u.totalScore} نقطة</span>
+                  <span class="text-xs ${u.badgeClass} font-bold px-3 py-1 rounded-full">${u.badgeText}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  // 6. User Profile View
+  renderProfileView: function(container) {
+    const user = window.AppStore.state.currentUser;
+
+    container.innerHTML = `
+      <div class="space-y-6 max-w-3xl mx-auto">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center space-y-3">
+          <img src="${user.avatar_url || 'https://i.pravatar.cc/150'}" class="w-24 h-24 rounded-full mx-auto border-4 border-beige-500 object-cover shadow">
+          <h2 class="text-2xl font-bold text-navy-900">${user.full_name}</h2>
+          <p class="text-xs text-gray-500">${user.job_title || user.role} — ${user.department || 'العمليات'}</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+          <h3 class="font-bold text-navy-900 text-base pb-2 border-b border-gray-100"><i class="fas fa-user-tag text-teal-600 ml-2"></i> الوصف الوظيفي والمسؤوليات</h3>
+          <p class="text-sm text-gray-600 leading-relaxed">${user.job_description || 'مسؤول عن تنفيذ المهام التقنية والتسويقية المسندة وإدارتها وفق أعلى معايير الجودة والالتزام بالمواعيد.'}</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+          <h3 class="font-bold text-navy-900 text-base pb-2 border-b border-gray-100"><i class="fas fa-lock text-red-600 ml-2"></i> تغيير كلمة المرور الأمان</h3>
+          <form onsubmit="window.AppController.handlePasswordChange(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">كلمة المرور الحالية</label>
+              <input type="password" id="pwd-old" required class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">كلمة المرور الجديدة</label>
+              <input type="password" id="pwd-new" required class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+            </div>
+            <button type="submit" class="px-5 py-2 bg-navy-900 text-white rounded-xl text-xs font-bold shadow">
+              تحديث كلمة المرور
+            </button>
+          </form>
+        </div>
+      </div>
+    `;
+  },
+
+  handlePasswordChange: async function(e) {
+    e.preventDefault();
+    const oldP = document.getElementById("pwd-old").value;
+    const newP = document.getElementById("pwd-new").value;
+
+    const res = await window.AppStore.apiCall("changePassword", {
+      userId: window.AppStore.state.currentUser.user_id,
+      oldPassword: oldP,
+      newPassword: newP
+    });
+
+    if (res && res.ok) {
+      this.showToast("تم تحديث كلمة المرور بنجاح!", "success");
+    } else {
+      this.showToast(res ? res.error : "فشل التحديث", "error");
+    }
+  },
+
+  // 7. Audit History View
+  renderHistoryView: function(container) {
+    const logs = window.AppStore.state.historyLog;
+
+    container.innerHTML = `
+      <div class="space-y-6">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-navy-900"><i class="fas fa-history text-red-600 ml-2"></i> السجل التاريخي (Audit Trail Log)</h2>
+            <p class="text-xs text-gray-500 mt-1">تتبع غير قابل للتعديل لكافة الإجراءات والتحركات في النظام</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <table class="w-full text-right text-xs">
+            <thead class="bg-navy-900 text-white">
+              <tr>
+                <th class="p-3">التاريخ والوقت</th>
+                <th class="p-3">المستخدم</th>
+                <th class="p-3">نوع الإجراء</th>
+                <th class="p-3">الكيان</th>
+                <th class="p-3">التفاصيل</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              ${logs.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-gray-400">لا توجد سجلات حالياً.</td></tr>` : ''}
+              ${logs.map(l => `
+                <tr class="hover:bg-gray-50">
+                  <td class="p-3 text-gray-400 font-mono">${l.timestamp ? new Date(l.timestamp).toLocaleString('ar-EG') : ''}</td>
+                  <td class="p-3 font-bold text-navy-900">${l.user_name || l.user_id}</td>
+                  <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">${l.action_type}</span></td>
+                  <td class="p-3 text-gray-600">${l.entity_type}</td>
+                  <td class="p-3 text-gray-700">${l.details || ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
   },
 
   getFilteredTasks: function() {
