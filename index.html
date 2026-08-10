@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام إدارة العمليات والمهام - شركة تسويق إلكتروني (ClickUp Inspired)</title>
+  <title>نظام فلك - إدارة العمليات التقنية والتسويقية (Falak Business Solutions)</title>
   
   <!-- Google Fonts: Cairo & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,208 +13,185 @@
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- App Styles -->
-  <link rel="stylesheet" href="style.css">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            navy:  { 900:'#0A1D3A', 800:'#0F2A52', 700:'#16386B', 600:'#1E4A8A', 500:'#2A5FA8' },
+            beige: { 500:'#C9A227', 400:'#D9B96B', 300:'#E8DCC4', 200:'#F3EDE1', 100:'#FAF7F0' },
+            state: { todo:'#94A3B8', progress:'#2A5FA8', review:'#D9B96B', done:'#16A34A', late:'#DC2626' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- App Styles (Direct Root Reference) -->
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="bg-beige-100 text-navy-900 font-sans antialiased">
 
-  <div id="app-root">
+  <!-- 1. LOGIN VIEW SHELL -->
+  <div id="login-view" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 p-4">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-navy-700 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-full h-2 bg-gradient-to-r from-beige-500 to-navy-600"></div>
 
-    <!-- Sidebar Navigation (ClickUp Hierarchy) -->
-    <aside class="sidebar">
-      <div class="brand-header">
-        <div class="brand-logo"><i class="fas fa-rocket"></i></div>
-        <div class="brand-title">AGENCY CLICKUP</div>
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-navy-900 text-beige-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg border border-beige-500/30">
+          <i class="fas fa-rocket"></i>
+        </div>
+        <h1 class="text-2xl font-black text-navy-900">نظام فلك للعمليات</h1>
+        <p class="text-xs text-gray-500 mt-1">Falak Business Solutions Operations System</p>
       </div>
 
-      <!-- Logged User Profile Badge & Role Switcher Simulator -->
-      <div class="user-profile-badge">
-        <img id="user-avatar-img" src="https://i.pravatar.cc/150?img=47" alt="User Avatar" class="user-avatar">
-        <div class="user-info">
-          <div id="user-display-name" class="user-name">د. سارة محمود</div>
-          <div id="user-role-name" class="user-role-tag">المدير العام</div>
-        </div>
+      <div id="login-error-msg" class="hidden mb-4 p-3 rounded-xl bg-red-50 text-red-600 text-xs font-bold border border-red-100 flex items-center gap-2">
+        <i class="fas fa-exclamation-circle"></i> <span></span>
       </div>
 
-      <!-- Navigation Links -->
-      <div class="nav-section">
-        <div class="nav-group-title">القوائم الرئيسية</div>
-        <div class="nav-item active" data-view="dashboard">
-          <i class="fas fa-chart-pie"></i>
-          <span>الداشبورد والتحليلات</span>
-        </div>
-        <div class="nav-item" data-view="board">
-          <i class="fas fa-columns"></i>
-          <span>لوحة المهام (Kanban)</span>
-        </div>
-        <div class="nav-item" data-view="list">
-          <i class="fas fa-list-ul"></i>
-          <span>قائمة المهام (Table)</span>
-        </div>
-        <div class="nav-item" data-view="review">
-          <i class="fas fa-glasses" style="color: var(--accent-yellow);"></i>
-          <span>مراجعة المدير (Review Queue)</span>
-        </div>
-        <div class="nav-item" data-view="calendar">
-          <i class="far fa-calendar-alt"></i>
-          <span>التقويم (Calendar)</span>
-        </div>
-        <div class="nav-item" data-view="gantt">
-          <i class="fas fa-stream"></i>
-          <span>مخطط جانت (Gantt)</span>
-        </div>
-
-        <!-- Hierarchy Folder Tree -->
-        <div class="hierarchy-tree">
-          <div class="nav-group-title" style="margin-top: 1.5rem;">هيكلية الأقسام (Spaces & Folders)</div>
-          <div class="tree-item"><i class="fas fa-folder" style="color: var(--accent-blue);"></i> حملات Paid Ads</div>
-          <div class="tree-item"><i class="fas fa-folder" style="color: var(--accent-pink);"></i> استوديو التصاميم</div>
-          <div class="tree-item"><i class="fas fa-folder" style="color: var(--accent-green);"></i> محركات البحث SEO</div>
-          <div class="tree-item"><i class="fas fa-folder" style="color: var(--accent-purple);"></i> الأوتوميشن والتقنية</div>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main Content Shell -->
-    <main class="main-wrapper">
-
-      <!-- Topbar Controls -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <div class="view-tabs">
-            <button class="view-tab active" data-view="dashboard"><i class="fas fa-chart-line"></i> التحليلات</button>
-            <button class="view-tab" data-view="board"><i class="fas fa-th-large"></i> البورد</button>
-            <button class="view-tab" data-view="list"><i class="fas fa-table"></i> القائمة</button>
-            <button class="view-tab" data-view="review"><i class="fas fa-check-double"></i> المراجعة</button>
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">اسم المستخدم / البريد الإلكتروني</label>
+          <div class="relative">
+            <input type="text" id="login-username" value="admin" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-navy-700 pr-10" placeholder="اسم المستخدم">
+            <i class="fas fa-user absolute right-3.5 top-3.5 text-gray-400"></i>
           </div>
         </div>
 
-        <div class="topbar-right">
-          <!-- Role Simulator Dropdown (to easily test Owner, GM, Media Buyer, Designer views) -->
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-user-shield"></i> محاكاة الوظيفة:</label>
-            <select id="role-simulator-select" class="role-select-box"></select>
-          </div>
-
-          <button class="btn btn-primary" onclick="window.AppController.openTaskModal()"><i class="fas fa-plus"></i> مهمة جديدة</button>
-        </div>
-      </header>
-
-      <!-- Advanced Filter Bar (ClickUp Inspired Filters) -->
-      <section class="filter-bar">
-        <input type="text" id="filter-search" class="search-input" placeholder="🔍 بحث في المهام والعملاء...">
-        
-        <select id="filter-status" class="filter-select">
-          <option value="ALL">جميع الحالات</option>
-          <option value="Backlog">قائمة الانتظار</option>
-          <option value="In Progress">قيد التنفيذ</option>
-          <option value="Review">مراجعة المدير</option>
-          <option value="Approved">معتمدة</option>
-          <option value="Completed">مكتملة</option>
-        </select>
-
-        <select id="filter-priority" class="filter-select">
-          <option value="ALL">جميع الأولويات</option>
-          <option value="Urgent">عاجل جداً (Urgent)</option>
-          <option value="High">مرتفع (High)</option>
-          <option value="Normal">عادي (Normal)</option>
-          <option value="Low">منخفض (Low)</option>
-        </select>
-
-        <select id="filter-platform" class="filter-select">
-          <option value="ALL">جميع المنصات</option>
-          <option value="Meta">Meta (Facebook/Insta)</option>
-          <option value="TikTok">TikTok Ads</option>
-          <option value="Google">Google Ads / SEO</option>
-          <option value="Snapchat">Snapchat</option>
-        </select>
-      </section>
-
-      <!-- Dynamic View Container -->
-      <div id="main-content-area" class="content-area"></div>
-
-    </main>
-  </div>
-
-  <!-- Task Creation / Editing Modal -->
-  <div id="task-modal" class="modal-overlay">
-    <div class="modal-box">
-      <div class="modal-header">
-        <div class="modal-title"><i class="fas fa-tasks"></i> إضافة مهمة جديدة للسيستم</div>
-        <button class="btn btn-secondary" onclick="window.AppController.closeTaskModal()"><i class="fas fa-times"></i></button>
-      </div>
-      <form onsubmit="window.AppController.saveTaskFromForm(event)">
-        <div class="form-group">
-          <label class="form-label">عنوان المهمة</label>
-          <input type="text" id="task-title-input" class="form-control" placeholder="مثال: إطلاق حملة Meta Conversion لشهر أغسطس" required>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">اسم العميل</label>
-            <input type="text" id="task-client-input" class="form-control" placeholder="مثال: متجر النخبة">
-          </div>
-          <div class="form-group">
-            <label class="form-label">المنصة التسويقية</label>
-            <select id="task-platform-input" class="form-control">
-              <option value="Meta">Meta (Facebook & Instagram)</option>
-              <option value="TikTok">TikTok Ads</option>
-              <option value="Google">Google Search & Ads</option>
-              <option value="Snapchat">Snapchat Ads</option>
-            </select>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">كلمة المرور</label>
+          <div class="relative">
+            <input type="password" id="login-password" value="admin123" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-navy-700 pr-10 pl-10" placeholder="••••••••">
+            <i class="fas fa-lock absolute right-3.5 top-3.5 text-gray-400"></i>
+            <button type="button" id="toggle-pwd-btn" class="absolute left-3 top-3 text-gray-400 hover:text-navy-900 text-sm">
+              <i class="fas fa-eye"></i>
+            </button>
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">الميزانية الإعلانية ($)</label>
-            <input type="number" id="task-budget-input" class="form-control" placeholder="0">
-          </div>
-          <div class="form-group">
-            <label class="form-label">الأولوية</label>
-            <select id="task-priority-input" class="form-control">
-              <option value="Urgent">عاجل (Urgent)</option>
-              <option value="High">مرتفع (High)</option>
-              <option value="Normal" selected>عادي (Normal)</option>
-              <option value="Low">منخفض (Low)</option>
-            </select>
-          </div>
+        <div class="flex items-center justify-between text-xs pt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="remember-me" checked class="rounded border-gray-300 text-navy-900 focus:ring-navy-700">
+            <span class="text-gray-600">تذكر بيانات الدخول</span>
+          </label>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">تاريخ الموعد النهائي (Deadline)</label>
-            <input type="datetime-local" id="task-duedate-input" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">الوقت التقديري بالرسوم (ساعات)</label>
-            <input type="number" step="0.5" id="task-hours-input" class="form-control" value="4">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">المسؤول عن التنفيذ (Assignee)</label>
-          <select id="task-assignee-input" class="form-control">
-            <option value="USR-007">حمزة يوسف (ميديا باير)</option>
-            <option value="USR-008">نور الهدى (ديزاينر)</option>
-            <option value="USR-006">مريم إبراهيم (كونتنت كريتور)</option>
-            <option value="USR-010">فاطمة الزهراء (SEO Specialist)</option>
-            <option value="USR-004">مهندس خالد مصطفى (Tech Lead)</option>
-            <option value="USR-009">كريم السعدي (سوشيال ميديا)</option>
-          </select>
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
-          <button type="button" class="btn btn-secondary" onclick="window.AppController.closeTaskModal()">إلغاء</button>
-          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ المهمة والمزامنة</button>
-        </div>
+        <button type="submit" id="login-btn" class="w-full py-3.5 bg-navy-900 hover:bg-navy-800 text-white font-bold rounded-xl text-sm shadow-lg transition flex items-center justify-center gap-2">
+          تسجيل الدخول <i class="fas fa-arrow-left"></i>
+        </button>
       </form>
     </div>
   </div>
 
-   <!-- App Core JavaScript Files -->
-  <script src="kpi_engine.js"></script>
-  <script src="store.js"></script>
+  <!-- 2. MAIN APP SHELL -->
+  <div id="app-view" class="hidden min-h-screen flex">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-navy-900 text-white flex flex-col justify-between border-l border-navy-800 z-30 transition-all duration-300">
+      <div>
+        <!-- Brand Logo Header -->
+        <div class="p-5 flex items-center gap-3 border-b border-navy-800 bg-navy-950/50">
+          <div class="w-10 h-10 bg-gradient-to-tr from-beige-500 to-amber-300 text-navy-900 rounded-xl flex items-center justify-center text-xl font-black shadow">
+            <i class="fas fa-rocket"></i>
+          </div>
+          <div>
+            <div class="font-black text-lg text-white leading-none">فــلــك</div>
+            <div class="text-[10px] text-beige-400 mt-1 font-semibold">Business Solutions</div>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="p-4 space-y-1.5 text-sm">
+          <a href="#" data-nav-view="dashboard" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-navy-800 hover:text-white transition active-nav">
+            <i class="fas fa-chart-pie w-5 text-center text-beige-500"></i>
+            <span class="font-bold">الداشبورد والتحليلات</span>
+          </a>
+
+          <a href="#" data-nav-view="kanban" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-navy-800 hover:text-white transition">
+            <i class="fas fa-columns w-5 text-center text-blue-400"></i>
+            <span class="font-bold">لوحة المهام (Kanban)</span>
+          </a>
+
+          <a href="#" data-nav-view="projects" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-navy-800 hover:text-white transition">
+            <i class="fas fa-project-diagram w-5 text-center text-purple-400"></i>
+            <span class="font-bold">المشاريع المفتوحة</span>
+          </a>
+
+          <a href="#" data-nav-view="clients" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-navy-800 hover:text-white transition">
+            <i class="fas fa-building w-5 text-center text-green-400"></i>
+            <span class="font-bold">قائمة العملاء</span>
+          </a>
+
+          <a href="#" data-nav-view="leaderboard" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-navy-800 hover:text-white transition">
+            <i class="fas fa-trophy w-5 text-center text-amber-400"></i>
+            <span class="font-bold">موظف الشهر والنقاط</span>
+          </a>
+
+          <a href="#" data-nav-view="profile" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-navy-800 hover:text-white transition">
+            <i class="fas fa-user-circle w-5 text-center text-teal-400"></i>
+            <span class="font-bold">الملف الشخصي و KPIs</span>
+          </a>
+
+          <a href="#" data-nav-view="history" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-navy-800 hover:text-white transition role-admin-only">
+            <i class="fas fa-history w-5 text-center text-red-400"></i>
+            <span class="font-bold">السجل التاريخي (Audit)</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- User Profile Badge at Sidebar Bottom -->
+      <div class="p-4 border-t border-navy-800 bg-navy-950/40">
+        <div class="flex items-center gap-3 mb-3">
+          <img id="header-user-avatar" src="https://i.pravatar.cc/150" class="w-10 h-10 rounded-full border-2 border-beige-500 object-cover">
+          <div class="overflow-hidden">
+            <div id="header-user-name" class="font-bold text-xs text-white truncate">أحمد بن علي</div>
+            <div id="header-user-role" class="text-[10px] text-beige-400 truncate">الرئيس التنفيذي</div>
+          </div>
+        </div>
+
+        <button onclick="window.AppController.logout()" class="w-full py-2 bg-navy-800 hover:bg-red-900/40 text-red-400 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2">
+          <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Topbar Header -->
+      <header class="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between z-20">
+        <div class="flex items-center gap-4">
+          <h2 class="font-bold text-navy-900 text-base">نظام فلك لإدارة العمليات</h2>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- Dark Mode Toggle -->
+          <button id="dark-mode-toggle" class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm" title="الوضع الليلي">
+            <i class="fas fa-moon"></i>
+          </button>
+
+          <!-- Notifications Bell -->
+          <button class="relative p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm" title="الإشعارات">
+            <i class="fas fa-bell"></i>
+            <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center">2</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Render Container -->
+      <main id="main-render-container" class="flex-1 overflow-y-auto p-6 bg-beige-100">
+        <!-- Rendered view content will be injected here dynamically -->
+      </main>
+    </div>
+
+  </div>
+
+  <!-- App Main JavaScript File (Direct Root Reference) -->
   <script src="app.js"></script>
 </body>
 </html>
