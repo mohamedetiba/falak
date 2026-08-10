@@ -1,9 +1,8 @@
 /**
  * Main Controller Script for ClickUp-Inspired Enterprise Marketing System
  */
-https://script.google.com/macros/s/AKfycbyjqAf1a6EcNV-tbAQ-zmg7iCOFQcxjDk_FV3gsH5KtmtfrMoJPZ0SrpE7jwW2zbxPElg/exec
 document.addEventListener("DOMContentLoaded", function() {
-  window.AppStore.init();
+  window.AppStore.init(https://script.google.com/macros/s/AKfycbwqJE5ZGsyRlXyTKWKI8Ed556N74AlyLVIYqnIrJA-hWD-ELNbq_vjRgNgY0E2ljz9Z/exec);
   window.AppController.init();
 });
 
